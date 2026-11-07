@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { Game } from './game.js';
 import { bombConfig, LEVELS, sanitizeFree, DEFAULT_FREE } from '../shared/levels.js';
 import { ALL_TYPES } from '../shared/modules/index.js';
+import { VERSION } from '../shared/version.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
 const MAX_PLAYERS = 10;
@@ -146,6 +147,7 @@ class Room {
 
   publicState() {
     return {
+      version: VERSION,
       code: this.code,
       phase: this.phase,
       hostId: this.hostId,

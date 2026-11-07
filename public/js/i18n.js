@@ -170,6 +170,9 @@ const STR = {
     score: 'Puan',
     report: 'Modül raporu',
     notSolved: 'çözülmedi',
+    newVersion: 'Oyunun yeni sürümü yüklendi. Sorunsuz oynamak için sayfayı yenile.',
+    reload: 'Yenile',
+    reloadPage: 'Sayfayı yenileyin',
   },
   en: {
     tagline: 'One sees the bomb. The others know how to take it apart.',
@@ -338,6 +341,9 @@ const STR = {
     score: 'Score',
     report: 'Module report',
     notSolved: 'not solved',
+    newVersion: 'A new version of the game is available. Reload the page to keep playing smoothly.',
+    reload: 'Reload',
+    reloadPage: 'Reload the page',
   },
 };
 

@@ -1,11 +1,15 @@
 // İmhacı ekranı: bombanın ön/arka yüzü, kenarlar, sayaç, olay efektleri.
 
-import { RENDERERS } from './modules/index.js';
+import { RENDERERS as KNOWN } from './modules/index.js';
 import { t, bombText } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { socket } from './net.js';
 import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
+
+// Tanınmayan modül (eski önbellekli istemci) bütün ekranı çökertmesin
+const UNKNOWN = { render: () => `<div class="mod-unknown">⟳<small>${t('reloadPage')}</small></div>` };
+const RENDERERS = new Proxy(KNOWN, { get: (o, k) => o[k] || UNKNOWN });
 
 const DESIGN_W = 730;
 const DESIGN_H = 510;
