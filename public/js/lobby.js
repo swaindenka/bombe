@@ -1,0 +1,203 @@
+// Lobi: oyuncular, roller, ayarlar, seviyeler ve skor tablosu.
+
+import { t, getLang, moduleName } from './i18n.js';
+import { esc, formatDuration } from './dom.js';
+import { LEVELS, FREE_LIMITS } from '/shared/levels.js';
+import { REGULAR_TYPES, NEEDY_TYPES } from '/shared/modules/index.js';
+
+const hue = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
+
+export function lobbyHTML(room, me) {
+  const L = getLang();
+  const isHost = room.hostId === me;
+  const s = room.settings;
+  const dis = isHost ? '' : 'disabled';
+  const connected = room.players.filter((p) => p.connected).length;
+
+  const players = room.players
+    .map((p) => {
+      const isDef = p.id === room.defuserId;
+      return `
+        <li class="player ${p.connected ? '' : 'offline'} ${p.id === me ? 'me' : ''}">
+          <span class="avatar" style="--h:${hue(p.name)}">${esc(p.name.charAt(0).toLocaleUpperCase('tr'))}</span>
+          <span class="pname">${esc(p.name)}${p.id === me ? ` <small>(${t('you')})</small>` : ''}</span>
+          <span class="badges">
+            ${p.id === room.hostId ? `<span class="badge b-host">★ ${t('host')}</span>` : ''}
+            ${isDef ? `<span class="badge b-defuser">💣 ${t('defuser')}</span>` : `<span class="badge b-expert">📖 ${t('expert')}</span>`}
+            ${p.connected ? '' : `<span class="badge b-off">${t('offline')}</span>`}
+          </span>
+          ${isHost && !isDef ? `<button class="btn btn-small btn-ghost" data-defuser="${p.id}">${t('makeDefuser')}</button>` : ''}
+        </li>`;
+    })
+    .join('');
+
+  const best = (id) => room.records?.[id]?.[0];
+  const levels = LEVELS.map((lv, i) => {
+    const b = best(lv.id);
+    return `
+      <button class="level ${s.levelId === lv.id ? 'sel' : ''}" data-level="${lv.id}" ${dis}>
+        <span class="lv-no">${i + 1}</span>
+        <span class="lv-name">${esc(lv.name[L])}</span>
+        <span class="lv-meta">${lv.regular} ${t('modules')} · ${formatDuration(lv.time * 1000)} · ✕${lv.strikes}${lv.needy ? ` · ⏱${lv.needy}` : ''}${lv.events ? ' · ⚡' : ''}</span>
+        <span class="lv-best">${b ? `🏆 ${formatDuration(b.timeMs)}` : '&nbsp;'}</span>
+      </button>`;
+  }).join('');
+
+  const f = s.free;
+  const range = (key, label, value, display, [min, max], step = 1) => `
+    <label class="range">
+      <span class="range-head"><span>${label}</span><b data-out="${key}">${display}</b></span>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-free="${key}" ${dis}>
+    </label>`;
+  const check = (attr, key, label, checked) =>
+    `<label class="chip ${checked ? 'on' : ''}"><input type="checkbox" ${attr}="${key}" ${checked ? 'checked' : ''} ${dis}><span>${label}</span></label>`;
+
+  const free = `
+    <div class="free-grid">
+      ${range('time', t('time'), f.time, formatDuration(f.time * 1000), FREE_LIMITS.time, 30)}
+      ${range('regular', t('modulesCap'), f.regular, f.regular, FREE_LIMITS.regular)}
+      ${range('needy', t('needy'), f.needy, f.needy, [0, Math.min(FREE_LIMITS.needy[1], 11 - f.regular)])}
+      ${range('strikes', t('strikes'), f.strikes, f.strikes, FREE_LIMITS.strikes)}
+    </div>
+    <div class="field-label">${t('poolRegular')}</div>
+    <div class="chips">${REGULAR_TYPES.map((ty) => check('data-pool', ty, esc(moduleName(ty)), f.pool.includes(ty))).join('')}</div>
+    <div class="field-label">${t('poolNeedy')}</div>
+    <div class="chips">${NEEDY_TYPES.map((ty) => check('data-needypool', ty, esc(moduleName(ty)), f.needyPool.includes(ty))).join('')}</div>
+    <div class="field-label">⚡ ${t('events')}</div>
+    <div class="chips">${check('data-freeflag', 'events', t('eventsOn'), f.events)}</div>`;
+
+  const toggle = (key, label, hint) => `
+    <label class="toggle">
+      <input type="checkbox" data-opt="${key}" ${s[key] ? 'checked' : ''} ${dis}>
+      <span class="toggle-ui"></span>
+      <span class="toggle-text"><b>${label}</b><small>${hint}</small></span>
+    </label>`;
+
+  const selLevel = LEVELS.find((l) => l.id === s.levelId) || LEVELS[0];
+  const recList = room.records?.[selLevel.id] || [];
+  const records = recList.length
+    ? `<ol class="records">${recList
+        .map(
+          (r) =>
+            `<li><span class="rec-time">${formatDuration(r.timeMs)}</span><span class="rec-team">${esc(r.team.join(', '))}</span><span class="rec-meta">💣 ${esc(r.defuser)} · ✕${r.strikes}</span></li>`
+        )
+        .join('')}</ol>`
+    : `<p class="muted small">${t('noRecords')}</p>`;
+
+  const statsRows = room.players
+    .map(
+      (p) =>
+        `<tr><td>${esc(p.name)}</td><td>${p.stats.wins}</td><td>${p.stats.losses}</td><td>${p.stats.bestMs !== null ? formatDuration(p.stats.bestMs) : '–'}</td></tr>`
+    )
+    .join('');
+
+  const last = room.lastResult;
+  const lastBanner = last
+    ? `<div class="last-result ${last.outcome}">${t('lastResult')}: <b>${t(last.outcome)}</b> · 💣 ${esc(last.defuserName)} · ${formatDuration(last.timeUsedMs)}</div>`
+    : '';
+
+  return `
+    <div class="lobby">
+      <header class="topbar">
+        <div class="brand">BOMBE</div>
+        <div class="room-chip"><span>${t('room')}</span><b id="roomCode">${esc(room.code)}</b><button class="btn btn-small" data-ui="copy">🔗 ${t('copyLink')}</button></div>
+        <div class="topbar-right">
+          <button class="btn btn-small btn-ghost" data-ui="manual">📖 ${t('manual')}</button>
+          ${langSwitch()}
+          <button class="btn btn-small btn-ghost" data-ui="leave">${t('leave')}</button>
+        </div>
+      </header>
+      ${lastBanner}
+      <div class="lobby-grid">
+        <section class="card card-players">
+          <h2>${t('players')} <small>${connected}/${room.players.length}</small></h2>
+          <ul class="players">${players}</ul>
+          ${connected < 2 ? `<p class="hint-box">👋 ${t('soloWarning')}</p>` : ''}
+        </section>
+
+        <section class="card card-settings">
+          <h2>${t('settings')}</h2>
+          ${isHost ? '' : `<p class="muted small">${t('onlyHost')}</p>`}
+          <div class="tabs">
+            <button class="tab ${s.mode === 'level' ? 'on' : ''}" data-mode="level" ${dis}>${t('modeLevels')}</button>
+            <button class="tab ${s.mode === 'free' ? 'on' : ''}" data-mode="free" ${dis}>${t('modeFree')}</button>
+          </div>
+          ${s.mode === 'level' ? `<div class="levels">${levels}</div>` : free}
+          <div class="field-label">${t('options')}</div>
+          <div class="toggles">
+            ${toggle('splitManual', t('splitManual'), t('splitManualHint'))}
+            ${toggle('rotateRoles', t('rotateRoles'), t('rotateRolesHint'))}
+            ${toggle('expertsSeeTimer', t('expertsSeeTimer'), t('expertsSeeTimerHint'))}
+          </div>
+          <div class="bomb-lang">
+            <span><b>${t('bombLang')}</b><small>${t('bombLangHint')}</small></span>
+            <div class="seg">
+              <button class="${s.contentLang === 'tr' ? 'on' : ''}" data-clang="tr" ${dis}>Türkçe</button>
+              <button class="${s.contentLang === 'en' ? 'on' : ''}" data-clang="en" ${dis}>English</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card-score">
+          <h2>${t('scoreboard')}</h2>
+          <div class="team-line">${t('team')}: <b>${room.team.wins}</b> ${t('wins').toLocaleLowerCase(L)} / ${room.team.games} ${t('games').toLocaleLowerCase(L)}</div>
+          <table class="stats"><thead><tr><th>${t('roomStats')}</th><th>${t('wins')}</th><th>${t('losses')}</th><th>${t('fastest')}</th></tr></thead><tbody>${statsRows}</tbody></table>
+          <h3>🏆 ${t('records')} · ${esc(selLevel.name[L])}</h3>
+          ${records}
+        </section>
+      </div>
+      <div class="start-bar">
+        ${
+          isHost
+            ? `<button class="btn btn-primary btn-big" data-ui="start">💣 ${t('start')}</button>`
+            : `<div class="waiting">${t('waitingHost')}</div>`
+        }
+      </div>
+    </div>`;
+}
+
+export function langSwitch() {
+  const L = getLang();
+  return `<div class="seg seg-lang" title="${t('lang')}"><button class="${L === 'tr' ? 'on' : ''}" data-ui="lang" data-lang="tr">TR</button><button class="${L === 'en' ? 'on' : ''}" data-ui="lang" data-lang="en">EN</button></div>`;
+}
+
+/** Lobi etkileşimlerini bağlar; send(event, payload) sunucuya gönderir */
+export function bindLobby(root, getRoom, send) {
+  root.addEventListener('click', (e) => {
+    const room = getRoom();
+    if (!room) return;
+    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang]');
+    if (!el || el.disabled) return;
+    if (el.dataset.defuser) send('room:defuser', { playerId: el.dataset.defuser });
+    else if (el.dataset.level) send('room:settings', { levelId: el.dataset.level });
+    else if (el.dataset.mode) send('room:settings', { mode: el.dataset.mode });
+    else if (el.dataset.clang) send('room:settings', { contentLang: el.dataset.clang });
+  });
+  root.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.dataset.free) return;
+    const out = root.querySelector(`[data-out="${el.dataset.free}"]`);
+    if (out) out.textContent = el.dataset.free === 'time' ? formatDuration(el.value * 1000) : el.value;
+  });
+  root.addEventListener('change', (e) => {
+    const el = e.target;
+    const room = getRoom();
+    if (!room) return;
+    const f = room.settings.free;
+    if (el.dataset.free) send('room:settings', { free: { [el.dataset.free]: Number(el.value) } });
+    else if (el.dataset.opt) send('room:settings', { [el.dataset.opt]: el.checked });
+    else if (el.dataset.freeflag) send('room:settings', { free: { [el.dataset.freeflag]: el.checked } });
+    else if (el.dataset.pool || el.dataset.needypool) {
+      const key = el.dataset.pool ? 'pool' : 'needyPool';
+      const type = el.dataset.pool || el.dataset.needypool;
+      const set = new Set(f[key]);
+      if (el.checked) set.add(type);
+      else set.delete(type);
+      if (key === 'pool' && !set.size) {
+        el.checked = true;
+        return;
+      }
+      send('room:settings', { free: { [key]: [...set] } });
+    }
+  });
+}

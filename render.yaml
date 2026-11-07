@@ -1,0 +1,12 @@
+# Render.com "Blueprint" dosyası: Render panelinde New > Blueprint ile bu depoyu seçmen yeterli.
+services:
+  - type: web
+    name: bombe
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
