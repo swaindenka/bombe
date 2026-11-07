@@ -5,11 +5,22 @@ import { t, bombText } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { socket } from './net.js';
-import { barControls, handleBarControl, countdownOverlay } from './ui.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
 
 const DESIGN_W = 730;
 const DESIGN_H = 510;
 const SLOTS_PER_FACE = 6;
+
+// Hareket türüne göre anlık ses
+const ACT_SFX = { cut: 'snip', toggle: 'toggle', rotate: 'dial', tune: 'dial', move: 'step', connect: 'plug', unplug: 'plug', submit: 'heavy', enter: 'heavy', test: 'heavy', send: 'heavy', vent: 'heavy' };
+const sfxFor = (action) => ACT_SFX[Object.keys(action)[0]] || 'press';
+
+// Ok tuşlarıyla oynanabilen modüller
+const KEY_DIR = { ArrowUp: 'N', ArrowRight: 'E', ArrowDown: 'S', ArrowLeft: 'W' };
+const KEY_ACTIONS = {
+  maze: (d) => ({ move: d }),
+  arrows: (d) => ({ press: d }),
+};
 
 export class DefuserView {
   constructor(root, init, { timer, isHost }) {
@@ -28,16 +39,21 @@ export class DefuserView {
     this.timeouts = [];
     this.started = init.startsInMs <= 0;
     this.ended = !!init.ended;
+    this.paused = !!init.timer.paused;
+    this.pausedAt = performance.now();
+    this.hover = null;
 
     this.render();
     this.mountAll();
     this.bind();
     this.fit();
+    sound.setStrikes(this.strikes);
+    if (this.paused) this.onPaused({ paused: true }, true);
     this.frame = this.frame.bind(this);
     this.raf = requestAnimationFrame(this.frame);
     this.stopCountdown = countdownOverlay(this.$('#countdown'), init.startsInMs, () => {
       this.started = true;
-      if (!this.ended) sound.startMusic();
+      if (!this.ended && !this.paused) sound.startMusic();
     });
   }
 
@@ -52,7 +68,7 @@ export class DefuserView {
       <div class="game game-defuser">
         <header class="game-bar">
           <div class="bar-left"><span class="role-badge r-defuser">💣 ${t('youAreDefuser')}</span><span class="bar-note">${t('noPeeking')}</span></div>
-          <div class="bar-right">${barControls(this.isHost)}</div>
+          <div class="bar-right">${barControls(this.isHost, { paused: this.paused })}</div>
         </header>
         <main class="stage" id="stage">
           <div class="bomb-scaler" id="scaler" style="width:${DESIGN_W}px;height:${DESIGN_H}px">
@@ -67,6 +83,7 @@ export class DefuserView {
         </main>
         <footer class="controls">
           <button class="btn" data-ctl="flip">⟲ ${t('flip')}</button>
+          <div class="face-dots" aria-hidden="true"><i class="on" data-face="front"></i><i data-face="back"></i><i data-face="edges"></i></div>
           <span class="face-label" id="faceLabel">${t('front')}</span>
           <button class="btn" data-ctl="edges">▣ ${t('edges')}</button>
           <span class="hint">${t('keysHint')}</span>
@@ -74,6 +91,7 @@ export class DefuserView {
         <div class="fx-flash" id="fxFlash"></div>
         <div class="fx-blackout" id="fxBlackout"><span>${t('flashlightHint')}</span></div>
         <div class="fx-alarm" id="fxAlarm"><button class="btn btn-danger" data-ctl="snooze">🔔 ${t('snooze')}</button></div>
+        ${pauseOverlayHTML()}
         <div class="countdown" id="countdown"></div>
       </div>`;
   }
@@ -99,6 +117,7 @@ export class DefuserView {
         <span class="mod-led"></span>
         ${m.needy ? `<span class="needy-timer lcd" data-needy="${m.id}">--</span>` : ''}
         <div class="mod-body">${r.render(m.view, { lang: this.lang, id: m.id })}</div>
+        <div class="solved-stamp" aria-hidden="true">✓</div>
       </div>`;
   }
 
@@ -163,6 +182,14 @@ export class DefuserView {
     if (body) this.mounts.set(m.id, r.mount(body, m.view));
   }
 
+  canAct() {
+    return this.started && !this.ended && !this.paused && this.view !== 'edges';
+  }
+
+  send(moduleId, action) {
+    socket.emit('game:action', { moduleId, action, t: this.timer.value() });
+  }
+
   bind() {
     this.onClick = (e) => {
       const ctlBtn = e.target.closest('[data-ctl]');
@@ -174,19 +201,26 @@ export class DefuserView {
         else if (ctl === 'snooze') this.snooze();
         return;
       }
+      const modEl = e.target.closest('.module[data-id]');
+      if (!modEl || modEl.classList.contains('solved') || !this.canAct()) return;
+      const id = modEl.dataset.id;
+      const localEl = e.target.closest('[data-local]');
+      if (localEl) {
+        const r = RENDERERS[this.mods.get(id).type];
+        const kind = r.local?.(modEl.querySelector('.mod-body'), localEl.dataset.local, (a) => this.send(id, a));
+        if (kind) sound.act(kind);
+        return;
+      }
       const actEl = e.target.closest('[data-act]');
-      if (!actEl || this.ended || !this.started) return;
-      const modEl = actEl.closest('.module[data-id]');
-      if (!modEl || modEl.classList.contains('solved')) return;
-      if (this.view === 'edges') return;
+      if (!actEl || actEl.disabled) return;
       let action;
       try {
         action = JSON.parse(actEl.dataset.act);
       } catch {
         return;
       }
-      sound.click();
-      socket.emit('game:action', { moduleId: modEl.dataset.id, action, t: this.timer.value() });
+      sound.act(sfxFor(action));
+      this.send(id, action);
     };
     this.onKey = (e) => {
       if (e.target.closest('input, textarea, select')) return;
@@ -195,7 +229,18 @@ export class DefuserView {
         this.flip();
       } else if (e.key === 'e' || e.key === 'E') {
         this.toggleEdges();
+      } else if (KEY_DIR[e.key] && this.hover && this.canAct()) {
+        const m = this.mods.get(this.hover.dataset.id);
+        const make = m && !m.solved && KEY_ACTIONS[m.type];
+        if (!make) return;
+        e.preventDefault();
+        const action = make(KEY_DIR[e.key]);
+        sound.act(sfxFor(action));
+        this.send(m.id, action);
       }
+    };
+    this.onOver = (e) => {
+      this.hover = e.target.closest?.('.module[data-id]') || null;
     };
     this.onResize = () => this.fit();
     this.onMove = (e) => {
@@ -205,6 +250,7 @@ export class DefuserView {
       fx.style.setProperty('--my', `${e.clientY}px`);
     };
     this.root.addEventListener('click', this.onClick);
+    this.root.addEventListener('pointerover', this.onOver);
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('resize', this.onResize);
     window.addEventListener('pointermove', this.onMove);
@@ -221,10 +267,12 @@ export class DefuserView {
   }
 
   setView(v) {
+    if (v !== this.view) sound.act(v === 'edges' || this.view === 'edges' ? 'toggle' : 'heavy');
     this.view = v;
     if (v !== 'edges') this.lastFace = v;
     this.$('#bombView').className = `bomb-view show-${v}`;
     this.$('#faceLabel').textContent = v === 'front' ? t('front') : v === 'back' ? t('back') : t('edges');
+    this.root.querySelectorAll('.face-dots i').forEach((d) => d.classList.toggle('on', d.dataset.face === v));
   }
 
   flip() {
@@ -243,27 +291,37 @@ export class DefuserView {
       const txt = formatTime(rem);
       if (digits.textContent !== txt) digits.textContent = txt;
       digits.parentElement.classList.toggle('low', rem < 60000);
+      digits.parentElement.classList.toggle('critical', rem < 10000);
     }
     const sec = Math.floor(rem / 1000);
     if (this.started && !this.ended && this.timer.rate > 0 && sec !== this.lastSecond && this.lastSecond !== null) {
-      sound.tick(rem < 30000);
+      if (rem < 10000) sound.finalBeep();
+      else sound.tick(sec % 2, rem < 30000);
     }
     this.lastSecond = sec;
     sound.setIntensity(1 - rem / 150000);
 
-    const now = performance.now();
+    const now = this.paused ? this.pausedAt : performance.now();
     for (const m of this.mods.values()) {
       if (!m.needy) continue;
       const el = this.root.querySelector(`[data-needy="${m.id}"]`);
       if (!el) continue;
+      let r = null;
       if (m.view.active && m.needyRemainingMs !== null && !this.ended) {
-        const r = Math.max(0, m.needyRemainingMs - (now - m.at));
-        el.textContent = String(Math.ceil(r / 1000)).padStart(2, '0');
+        r = Math.max(0, m.needyRemainingMs - (now - m.at));
+        const s = Math.ceil(r / 1000);
+        el.textContent = String(s).padStart(2, '0');
         el.classList.toggle('warn', r < 10000);
+        if (r < 10000 && s !== m.lastWarn && !this.paused) {
+          m.lastWarn = s;
+          sound.needyWarn();
+        }
       } else {
         el.textContent = '--';
         el.classList.remove('warn');
       }
+      const fr = RENDERERS[m.type].frame;
+      if (fr) fr(el.parentElement.querySelector('.mod-body'), m.view, r);
     }
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -285,6 +343,7 @@ export class DefuserView {
       }
       el.classList.toggle('needy-on', !!mv.view.active);
     }
+    if (mv.view.stage && prev?.view.stage && mv.view.stage > prev.view.stage) sound.stage();
     const body = el.querySelector('.mod-body');
     const r = RENDERERS[mv.type];
     if (r.update && prev && r.update(body, mv.view, prev.view)) return;
@@ -302,6 +361,7 @@ export class DefuserView {
 
   onStrike(s) {
     this.strikes = s.strikes;
+    sound.setStrikes(s.strikes);
     const box = this.$('#tmStrikes');
     if (box) box.innerHTML = this.strikesHTML();
     sound.strike();
@@ -318,15 +378,37 @@ export class DefuserView {
     this.pulse('#stage', 'jolt', 400);
   }
 
-  onSolved() {
+  onSolved(s) {
     sound.solve();
+    const el = s && this.$(`.module[data-id="${s.moduleId}"]`);
+    if (el) {
+      el.classList.add('just-solved');
+      this.later(() => el.classList.remove('just-solved'), 900);
+    }
+  }
+
+  onPaused({ paused }, silent = false) {
+    this.paused = paused;
+    if (paused) this.pausedAt = performance.now();
+    this.$('#pauseOverlay')?.classList.toggle('on', paused);
+    setPauseButton(this.root, paused);
+    if (silent) return;
+    sound.pause(paused);
+    if (paused) {
+      sound.stopMusic();
+      this.snooze();
+    } else if (this.started && !this.ended) sound.startMusic();
   }
 
   onEvent(ev) {
     toast('⚡ ' + t('ev_' + ev.type), 'warn');
-    if (ev.type === 'blackout') this.pulse('#fxBlackout', 'on', ev.duration);
-    else if (ev.type === 'shake') this.pulse('#stage', 'quake', ev.duration);
-    else if (ev.type === 'alarm') {
+    if (ev.type === 'blackout') {
+      sound.blackout();
+      this.pulse('#fxBlackout', 'on', ev.duration);
+    } else if (ev.type === 'shake') {
+      sound.rumble(ev.duration);
+      this.pulse('#stage', 'quake', ev.duration);
+    } else if (ev.type === 'alarm') {
       this.pulse('#fxAlarm', 'on', ev.duration);
       sound.alarm(ev.duration);
     }
@@ -341,11 +423,15 @@ export class DefuserView {
     this.ended = true;
     this.snooze();
     this.$('#fxBlackout')?.classList.remove('on');
-    sound.stopMusic();
+    this.$('#pauseOverlay')?.classList.remove('on');
     if (result.outcome === 'exploded') {
+      sound.stopMusic(true);
       sound.explode();
       this.$('.game')?.classList.add('boom');
-    } else if (result.outcome === 'defused') sound.win();
+    } else {
+      sound.stopMusic();
+      if (result.outcome === 'defused') sound.win();
+    }
   }
 
   pulse(sel, cls, ms) {
@@ -367,6 +453,7 @@ export class DefuserView {
     this.timeouts.forEach(clearTimeout);
     this.mounts.forEach((fn) => fn?.());
     this.root.removeEventListener('click', this.onClick);
+    this.root.removeEventListener('pointerover', this.onOver);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('pointermove', this.onMove);

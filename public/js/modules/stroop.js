@@ -1,5 +1,6 @@
 import { COLOR_HEX } from '/shared/colors.js';
 import { STROOP_WORDS } from '/shared/words.js';
+import { cb } from './cb.js';
 
 const INK = { ...COLOR_HEX, yellow: '#d9b100' };
 
@@ -10,12 +11,12 @@ export default {
     const buttons = v.fills
       .map(
         (fill, i) =>
-          `<button class="st-btn st-${fill}" style="background:${COLOR_HEX[fill]}" data-act='{"press":${i}}'>${words[v.labels[i]]}</button>`
+          `<button class="st-btn st-${fill}" style="background:${COLOR_HEX[fill]}" data-act='{"press":${i}}'>${words[v.labels[i]]}${cb(fill, 'cb-corner')}</button>`
       )
       .join('');
     return `
       <div class="st-stage">${stage}</div>
-      <div class="st-display ${v.background}"><span style="color:${INK[v.ink]}">${words[v.word]}</span></div>
+      <div class="st-display ${v.background}"><span style="color:${INK[v.ink]}">${words[v.word]}</span>${cb(v.ink, 'cb-corner')}</div>
       <div class="st-grid">${buttons}</div>`;
   },
 };

@@ -13,16 +13,43 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 ## Özellikler
 
 - **Gerçek zamanlı çok oyunculu:** Node.js + Socket.IO sunucusu. Çözümler sunucuda tutulur; imhacının tarayıcısına yalnızca gördüğü şey gönderilir.
-- **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır. Herkes konuşmak zorunda kalır, kilitli sayfada o bölümün hangi uzmanda olduğu yazar.
-- **Dönen roller:** Her bombadan sonra imhacı sıradaki oyuncu olur. Oda sahibi istediği zaman imhacıyı elle de seçebilir.
-- **8 seviye ve serbest mod:** Seviyeler 3 modül ve 5 dakikadan 9 modül, 2 hata hakkı ve rastgele olaylara kadar zorlaşır. Serbest modda süreyi, modül sayısını, hata hakkını ve kullanılacak modülleri siz seçersiniz.
-- **8 normal modül:** Kablolar, Şalterler, Renk Izgarası, Glifler, Labirent, Renk Karmaşası, Kasa, Ritim.
-- **2 sürekli ilgi isteyen modül:** Soğutucu ve Parola. Bunlar çözülmez; ara ara devreye girer ve ihmal edilirse hata yazar.
+- **17 modül:** 13 normal ve 4 sürekli ilgi isteyen modül (aşağıdaki tablo).
+- **10 seviye ve serbest mod:** Seviyeler modülleri kademeli tanıtır; her seviye 2–3 yeni şey getirir ve lobide "Yeni:" rozetiyle gösterir. Tamamlanan seviyeler ✓ ile işaretlenir. Serbest modda süre, modül sayısı, hata hakkı ve modül havuzu seçilir.
+- **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır; kilitli sayfada o bölümün kimde olduğu yazar.
+- **Dönen roller:** Her bombadan sonra imhacı sıradaki oyuncu olur.
+- **Ortak not defteri:** Uzmanlar seri numarası, pil, gösterge ve port bilgisini anlık paylaşır. Seri numarası girilince son rakam (tek/çift), sesli harf ve rakam toplamı otomatik hesaplanır.
+- **Kılavuzda arama:** `/` ile arama kutusuna geçilir (ör. "hdmi" yazınca portlarla ilgili sayfalar kalır). Okunan sayfa içindekilerde vurgulanır.
+- **Duraklatma:** Oda sahibi oyunu duraklatabilir; sayaç, sürekli ilgi isteyen modüller ve olaylar donar.
+- **Tur sonu raporu:** Puan, hangi modülün kaçıncı saniyede çözüldüğü ve hangi modülde kaç hata yapıldığı.
 - **Rastgele olaylar:** Işıklar söner (fenerle bakılır), bomba sarsılır, alarm çalar, uzmanların kılavuzuna parazit girer.
-- **Skor tablosu:** Oda içi istatistikler (kim imhacıyken kaç bomba çözdü, en hızlı süre) ve seviye başına en hızlı imha rekorları.
-- **Sesler ve müzik:** Tik-tak, hata sesi, patlama ve gerilim müziği; hepsi kodla üretilir, ses dosyası yoktur.
-- **Türkçe + İngilizce:** Arayüz dili herkes için ayrı seçilir. Bombanın üzerindeki kelimeler ve kelime tabloları için oda sahibi bir **bomba dili** belirler.
-- **Mobil uyumlu kılavuz:** Uzmanlar Discord'da konuşurken kılavuzu telefondan okuyabilir. Bomba ekranı masaüstü ve tablet için tasarlandı.
+- **Skor tablosu:** Oda içi istatistikler, takım puanı ve seviye başına en hızlı imha rekorları.
+- **Ses tasarımı:** Her etkileşimin kendi sesi var (kablo kesme, şalter, kadran, fiş). Müzik katmanlıdır: süre azaldıkça arpej ve gerilim tonu devreye girer, hata aldıkça tempo artar. Son 10 saniyede bip sesi, lobide yumuşak bir ambiyans çalar. Hepsi kodla üretilir; ana ses, müzik ve efekt seviyeleri ayrı ayarlanır.
+- **Erişilebilirlik:** Renk körü etiketleri (renkli parçaların üzerine KI/MA/YE/SA gibi kısaltmalar) ve "efektleri azalt" seçeneği.
+- **Kısayollar:** Boşluk = bombayı çevir, E = kenarlar, ok tuşları = imlecin altındaki labirent/pusula, `/` = kılavuzda ara.
+- **Türkçe + İngilizce:** Arayüz dili kişiye özel, bombadaki kelimelerin dili oda ayarı.
+- **Mobil uyumlu kılavuz:** Uzmanlar kılavuzu telefondan okuyabilir.
+
+### Modüller
+
+| Kademe | Modül | Kısaca |
+| --- | --- | --- |
+| 1 | Kablolar | Kablo sayısı ve en üstteki kablonun rengiyle tablodan kesilecek kablo |
+| 1 | Şalterler | Lamba rengi + seri no. → 5 şalterin dizilimi |
+| 1 | Renk Izgarası | Baskın renk + pil sayısı → basılacak karolar |
+| 1 | Glifler | Sembollerin değerine göre sıralı basma |
+| 1 | Pusula | Okun rengine göre yön çevirme, 4 aşama |
+| 2 | Labirent | Görünmez duvarlı labirentte yön tarifi |
+| 2 | Bağlantı Panosu | Renkli fişleri doğru şekilli prizlere takma |
+| 2 | Renk Karmaşası | Kelime/mürekkep/arka plan karmaşası, 3 aşama |
+| 2 | Kasa | Kasa bilgilerinden 3 haneli şifre hesaplama |
+| 2 | Manometreler | Üç göstergeyi okuyup doğru vanayı açma, 2 aşama |
+| 3 | Ritim | Yanıp sönen desenden rakam, sayaca göre zamanlı basma |
+| 3 | Şifre Çözücü | Harfleri kaydırılmış kodu çözme |
+| 3 | Sesteş | Birbirine çok benzeyen kelimeleri doğru tarif etme, 3 aşama |
+| ⏱ | Soğutucu | Kodun rakamlarına göre A/B/C |
+| ⏱ | Parola | Soru kelimesinin cevabı |
+| ⏱ | Telsiz | Çağrı kodunun kanalını ayarlayıp gönderme |
+| ⏱ | Basınç Vanası | Basınç yeşil bölgedeyken tahliye (dikkat ister) |
 
 ## Hızlıca çalıştırma (kendi bilgisayarında)
 
@@ -55,9 +82,9 @@ Notlar:
 ## Nasıl oynanır?
 
 1. Biri **Oda kur** der ve davet bağlantısını paylaşır.
-2. Oda sahibi bir seviye ya da serbest mod seçer, sonra **Bombayı getir** der.
+2. Oda sahibi bir seviye ya da serbest mod seçer, sonra **Bombayı getir** der. İlk kez oynuyorsanız 1. seviyeden başlayın.
 3. İmhacı bombayı çevirerek (Boşluk tuşu) ön ve arka yüze, **Kenarlar** görünümünden (E tuşu) seri numarası, pil, gösterge ve portlara bakar ve gördüklerini anlatır.
-4. Uzmanlar kılavuzda doğru sayfayı bulur ve imhacıya ne yapacağını söyler.
+4. Uzmanlar kılavuzda doğru sayfayı bulur, kasa bilgilerini ortak not defterine yazar ve imhacıya ne yapacağını söyler.
 5. Her yanlış hamle bir hata yazdırır ve sayacı %25 hızlandırır. Hata hakkı biterse ya da süre dolarsa... 💥
 
 Kural: İmhacı kılavuza bakmaz. Oyun buna güvenir. Kılavuz her oyuncunun tarayıcısında çalıştığı için hile tamamen dürüstlüğe kalmış.
@@ -90,12 +117,12 @@ Kılavuzdaki tablolar (kablo kuralları, şalter dizilimleri, glif değerleri, l
 npm test
 ```
 
-Testler her modülün yüzlerce rastgele bombada doğru hamlelerle hatasız çözüldüğünü, yanlış hamlelerin hata yazdırdığını ve imhacıya giden görünümde çözüm bilgisi bulunmadığını kontrol eder. Gerçek soket bağlantılarıyla da oda kurma, katılma, kılavuz paylaştırma, kazanma, patlama, hızlanan sayaç, sürekli ilgi isteyen modüller ve yeniden bağlanma senaryolarını çalıştırır.
+Testler her modülün yüzlerce rastgele bombada doğru hamlelerle hatasız çözüldüğünü, yanlış hamlelerin hata yazdırdığını, imhacıya giden görünümde çözüm bilgisi bulunmadığını ve her seviyenin tanıttığı modüllerin bombada gerçekten çıktığını kontrol eder. Gerçek soket bağlantılarıyla da oda kurma, katılma, kılavuz paylaştırma, kazanma, patlama, hızlanan sayaç, sürekli ilgi isteyen modüller, duraklatma, ortak notlar, puan ve yeniden bağlanma senaryolarını çalıştırır.
 
 ## Yeni modül eklemek
 
-1. `shared/modules/<ad>.js`: `generate`, `view`, `action` fonksiyonları (sürekli ilgi isteyen modüller için ayrıca `activate`).
-2. `shared/modules/index.js` içine kaydet.
-3. `public/js/modules/<ad>.js`: bomba üzerindeki çizim. Tıklanabilir öğelere `data-act='{"...":...}'` eklemen yeterli.
+1. `shared/modules/<ad>.js`: `generate`, `view`, `action` fonksiyonları (sürekli ilgi isteyen modüller için ayrıca `activate` ve isteğe bağlı `activeFor`).
+2. `shared/modules/index.js` içinde kaydet ve bir zorluk kademesine (`TIERS`) ekle. Bir seviyenin havuzuna girince lobide otomatik olarak "Yeni" rozetiyle tanıtılır.
+3. `public/js/modules/<ad>.js`: bomba üzerindeki çizim. Tıklanabilir öğelere `data-act='{"...":...}'` eklemen yeterli. Sadece tarayıcıda kalan seçimler için `local()`, her karede çizim için `frame()` kullanılabilir (örnekler: Bağlantı Panosu, Basınç Vanası).
 4. `public/js/manual/<ad>.js`: kılavuz sayfası. Ardından `public/js/manual/index.js` ve `public/js/i18n.js` içindeki modül adlarına ekle.
 5. `test/solver.js` içine çözücüsünü ekle; testler modülü otomatik olarak dener.

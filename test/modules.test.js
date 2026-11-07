@@ -14,6 +14,13 @@ import { tilesTarget } from '../shared/modules/tiles.js';
 import { coolantAnswer } from '../shared/modules/coolant.js';
 import { PASSPHRASES } from '../shared/words.js';
 import { nextAction } from './solver.js';
+import { cipherShift, encode } from '../shared/modules/cipher.js';
+import { gaugeAnswer } from '../shared/modules/gauges.js';
+import { arrowAnswer } from '../shared/modules/arrows.js';
+import { patchTarget, PATCH_TABLE } from '../shared/modules/patch.js';
+import { RADIO_CALLSIGNS } from '../shared/modules/radio.js';
+import { HOMOPHONES, CIPHER_WORDS } from '../shared/words.js';
+import { LEVELS } from '../shared/levels.js';
 
 const SEEDS = Array.from({ length: 300 }, (_, i) => 1000 + i * 7919);
 
@@ -39,7 +46,12 @@ test('her modül doğru hamlelerle hatasız çözülür', () => {
         const s = def.generate(rng, e, lang);
         if (def.needy) {
           def.activate(s, rng, e, lang);
-          const r = def.action(s, nextAction(type, s, e), { edgework: e, rng, lang });
+          const ctx = { edgework: e, rng, lang, needyProgress: s.zone ? (s.zone[0] + 8) / 100 : 0 };
+          let r = {};
+          for (let step = 0; step < 20 && !r.deactivate; step++) {
+            r = def.action(s, nextAction(type, s, e), ctx);
+            assert.ok(!r.strike, `${type} beklenmeyen hata (seed ${seed})`);
+          }
           assert.deepEqual(r, { deactivate: true }, `${type} seed ${seed}`);
           continue;
         }
@@ -110,10 +122,23 @@ test('sabit veriler benzersiz', () => {
   assert.equal(new Set(MAZE_LEDS.map((l) => l.join(''))).size, MAZES.length);
   assert.equal(new Set(RHYTHM_PATTERNS).size, 10);
   for (const lang of ['tr', 'en']) {
+    const h = HOMOPHONES[lang];
+    assert.equal(new Set(h.map((p) => p[0])).size, h.length);
+    assert.deepEqual(new Set(h.map((p) => p[1])), new Set(h.map((p) => p[0])), 'sesteş hedefleri listedeki kelimeler olmalı');
+    assert.ok(h.every(([a, b]) => a !== b));
+    assert.ok(CIPHER_WORDS[lang].every((w) => /^[A-Z]{5}$/.test(w)));
+    for (const tbl of Object.values(PATCH_TABLE)) assert.equal(new Set(Object.values(tbl)).size, 4);
+    assert.equal(new Set(RADIO_CALLSIGNS.map((c) => c[0])).size, RADIO_CALLSIGNS.length);
     const list = PASSPHRASES[lang];
     assert.equal(new Set(list.map((p) => p[0])).size, list.length);
     assert.equal(new Set(list.map((p) => p[1])).size, list.length);
   }
+});
+
+test('her modül en az bir seviyede tanıtılır', () => {
+  const introduced = LEVELS.flatMap((l) => l.introduces);
+  for (const t of [...REGULAR_TYPES, ...NEEDY_TYPES]) assert.ok(introduced.includes(t), t + ' hiçbir seviyede yok');
+  assert.equal(new Set(introduced).size, introduced.length);
 });
 
 test('labirentlerin tüm hücreleri birbirine ulaşır', () => {
@@ -155,8 +180,45 @@ test('kurallar kılavuzdaki tanımla örtüşür', () => {
   assert.equal(tilesTarget(['red', 'red', 'red', 'blue', 'yellow', 'green', 'blue', 'red', 'green'], e), 'yellow');
   // Eşitlikte kırmızı > mavi: kırmızı ve mavi 3'er → kırmızı baskın → sarı yoksa kırmızı
   assert.equal(tilesTarget(['red', 'red', 'red', 'blue', 'blue', 'blue', 'green', 'green', 'green'], e), 'red');
+  // Şifre çözücü: 3 pil + 2 + sesli harf 1 = 6
+  assert.equal(cipherShift(e), 6);
+  assert.equal(encode('KALEM', 6), 'QGRKS');
+  assert.equal(encode('ZEBRA', 1), 'AFCSB');
+  // Manometreler
+  assert.equal(gaugeAnswer([3, 3, 7], e), 2);
+  assert.equal(gaugeAnswer([2, 9, 9], e), 0);
+  assert.equal(gaugeAnswer([5, 5, 5], e), 1);
+  assert.equal(gaugeAnswer([8, 6, 5], e), 0);
+  assert.equal(gaugeAnswer([1, 4, 2], e), 0);
+  assert.equal(gaugeAnswer([1, 4, 2], { ...e, serial: 'BC12D7' }), 2);
+  // Pusula
+  assert.equal(arrowAnswer(1, 'N', 'red', e), 'S');
+  assert.equal(arrowAnswer(3, 'N', 'red', e), 'W');
+  assert.equal(arrowAnswer(1, 'E', 'blue', e), 'S');
+  assert.equal(arrowAnswer(1, 'N', 'yellow', e), 'W');
+  assert.equal(arrowAnswer(4, 'W', 'green', { ...e, serial: 'AB12C8' }), 'W');
+  // Bağlantı panosu: tek seri, 3 pil → üçgen/kare yer değiştirir
+  assert.equal(patchTarget('red', e), 'triangle');
+  assert.equal(patchTarget('blue', e), 'star');
+  assert.equal(patchTarget('yellow', e), 'square');
+  assert.equal(patchTarget('red', { ...e, batteryHolders: [1] }), 'square');
   // Soğutucu
   assert.equal(coolantAnswer('121'), 'B');
   assert.equal(coolantAnswer('123'), 'A');
   assert.equal(coolantAnswer('124'), 'C');
+});
+
+test('seviyenin tanıttığı yeni modüller bombada mutlaka bulunur', async () => {
+  const { Game } = await import('../server/game.js');
+  const { bombConfig } = await import('../shared/levels.js');
+  for (const lv of LEVELS) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const g = new Game({ config: bombConfig({ mode: 'level', levelId: lv.id }), seed });
+      const types = g.modules.map((m) => m.type);
+      for (const t of lv.introduces) assert.ok(types.includes(t), `${lv.id}: ${t} bombada yok`);
+      assert.equal(g.modules.filter((m) => !m.needy).length, lv.regular);
+      assert.equal(g.modules.filter((m) => m.needy).length, lv.needy);
+      assert.equal(new Set(g.modules.map((m) => m.slot)).size, g.modules.length);
+    }
+  }
 });

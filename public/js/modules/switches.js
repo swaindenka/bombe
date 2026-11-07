@@ -1,5 +1,6 @@
 import { COLOR_HEX } from '/shared/colors.js';
 import { bombText } from '../i18n.js';
+import { cb } from './cb.js';
 
 export default {
   render(v, ctx) {
@@ -10,7 +11,7 @@ export default {
       )
       .join('');
     return `
-      <div class="sw-lamp" style="--c:${COLOR_HEX[v.lamp]}"></div>
+      <div class="sw-lamp" style="--c:${COLOR_HEX[v.lamp]}">${cb(v.lamp, 'cb-center')}</div>
       <div class="sw-row">${sw}</div>
       <button class="plate-btn sw-submit" data-act='{"submit":true}'>${bombText(ctx.lang, 'submit')}</button>`;
   },

@@ -1,5 +1,6 @@
 import { COLOR_HEX } from '/shared/colors.js';
 import { bombText } from '../i18n.js';
+import { cb } from './cb.js';
 
 // Kadranın dönüşü yumuşak olsun diye bu modül yerinde güncellenir.
 export default {
@@ -8,7 +9,7 @@ export default {
     const nums = Array.from({ length: 10 }, (_, i) => `<span class="sf-n" style="--a:${i * 36}deg">${i}</span>`).join('');
     const leds = [0, 1, 2].map((i) => `<span class="${i < v.entered ? 'on' : ''}"></span>`).join('');
     return `
-      <div class="sf-display"><span class="sf-lamp" style="--c:${COLOR_HEX[v.lamp]}"></span><span class="sf-num">${v.number}</span></div>
+      <div class="sf-display"><span class="sf-lamp" style="--c:${COLOR_HEX[v.lamp]}"></span>${cb(v.lamp)}<span class="sf-num">${v.number}</span></div>
       <div class="sf-dial-wrap"><div class="sf-pointer"></div><div class="sf-dial" style="--rot:${-v.dial * 36}deg">${nums}<div class="sf-knob"></div></div></div>
       <div class="sf-progress">${leds}</div>
       <button class="plate-btn sf-rot l" data-act='{"rotate":-1}' aria-label="-1">◀</button>

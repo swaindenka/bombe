@@ -1,5 +1,6 @@
 import { RHYTHM_TIMING } from '/shared/modules/rhythm.js';
 import { bombText } from '../i18n.js';
+import { cb } from './cb.js';
 
 /** Desenden yanık/sönük zaman dilimleri: [{on, dur}] */
 function schedule(pattern) {
@@ -15,7 +16,7 @@ function schedule(pattern) {
 export default {
   render(v, ctx) {
     return `
-      <div class="rh-housing"><div class="rh-lamp ${v.lamp}"></div></div>
+      <div class="rh-housing"><div class="rh-lamp ${v.lamp}"></div>${cb(v.lamp, 'cb-center')}</div>
       <button class="plate-btn rh-press" data-act='{"press":true}'>${bombText(ctx.lang, 'press')}</button>`;
   },
   mount(el, v) {

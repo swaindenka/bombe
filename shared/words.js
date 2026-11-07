@@ -36,3 +36,41 @@ export const PASSPHRASES = {
     ['WIND', 'TABLE'],
   ],
 };
+
+// ŞİFRE ÇÖZÜCÜ: 26 harfli Latin alfabesiyle yazılabilen 5 harfli kelimeler
+export const CIPHER_WORDS = {
+  tr: ['KALEM', 'BULUT', 'DOLAP', 'MASAL', 'ROKET', 'LAMBA', 'ZEBRA', 'HOROZ', 'PERDE', 'BALON', 'TABLO', 'KAVUN'],
+  en: ['PLANT', 'ROBOT', 'CANDY', 'GHOST', 'LEMON', 'MAPLE', 'NOVEL', 'OCEAN', 'PIANO', 'TIGER', 'VAPOR', 'WHALE'],
+};
+
+// SESTEŞ: ekrandaki kelime -> basılacak kelime. Kelimeler bilerek birbirine çok benziyor.
+export const HOMOPHONES = {
+  tr: [
+    ['BİN', 'KÂR'],
+    ['BIN', 'HAL'],
+    ['PİN', 'BEN'],
+    ['BEN', 'ŞAY'],
+    ['ŞEY', 'BIN'],
+    ['ŞAY', 'HALL'],
+    ['HAL', 'PİN'],
+    ['HÂL', 'ŞEY'],
+    ['KAR', 'HÂL'],
+    ['KÂR', 'KAAR'],
+    ['KAAR', 'BİN'],
+    ['HALL', 'KAR'],
+  ],
+  en: [
+    ['WRITE', 'NIGHT'],
+    ['RIGHT', 'FORE'],
+    ['RITE', 'HOLE'],
+    ['KNIGHT', 'WRITE'],
+    ['NIGHT', 'FOR'],
+    ['NITE', 'RIGHT'],
+    ['FOUR', 'HOLL'],
+    ['FOR', 'KNIGHT'],
+    ['FORE', 'NITE'],
+    ['WHOLE', 'RITE'],
+    ['HOLE', 'FOUR'],
+    ['HOLL', 'WHOLE'],
+  ],
+};
