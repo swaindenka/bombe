@@ -5,7 +5,7 @@ import { t, bombText, moduleName } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { socket } from './net.js';
-import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip } from './ui.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip, campaignIntroHTML } from './ui.js';
 import { reportError } from './errors.js';
 
 // Tanınmayan modül (eski önbellekli istemci) bütün ekranı çökertmesin
@@ -69,7 +69,7 @@ export class DefuserView {
     this.stopCountdown = countdownOverlay(this.$('#countdown'), init.startsInMs, () => {
       this.started = true;
       if (!this.ended && !this.paused) sound.startMusic();
-    });
+    }, campaignIntroHTML(init));
   }
 
   $(sel) {

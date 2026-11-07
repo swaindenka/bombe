@@ -5,6 +5,31 @@ import { esc, formatDuration } from './dom.js';
 import { LEVELS, FREE_LIMITS } from '/shared/levels.js';
 import { REGULAR_TYPES, NEEDY_TYPES } from '/shared/modules/index.js';
 import { VERSION } from '/shared/version.js';
+import { opName, livesHTML, pipsHTML, briefHTML } from './campaign-ui.js';
+
+function campaignLobbyHTML(room, isHost) {
+  const run = room.campaign?.run;
+  const best = room.campaign?.best;
+  const active = run && !run.over;
+  const status = active
+    ? `<div class="camp-status">
+        <div class="camp-name">🎯 ${opName(run.seed)}</div>
+        <div class="camp-line">${t('campaignStage')} <b>${run.stage}/${run.total}</b> · ${livesHTML(run.lives, run.maxLives)} · <b>${run.score}</b> ${t('points')}</div>
+        ${pipsHTML(run)}
+        <div class="field-label">${t('nextStage')}</div>
+        ${briefHTML(run.next)}
+        ${isHost ? `<button class="btn btn-small btn-ghost" data-ui="campaignNew">↺ ${t('campaignNew')}</button>` : ''}
+      </div>`
+    : `<p>${t('campaignNoRun')}</p>`;
+  return `
+    <div class="campaign-box">
+      <b>🎯 ${t('modeCampaign')}</b>
+      <p class="small">${t('campaignHint')}</p>
+      <ul class="camp-rules"><li>✅ ${t('campaignRule1')}</li><li>💥 ${t('campaignRule2')}</li><li>🏆 ${t('campaignRule3')}</li></ul>
+      ${status}
+      ${best?.stage ? `<p class="small muted">🏅 ${t('campaignBestLine', { n: best.stage, score: best.score })}</p>` : ''}
+    </div>`;
+}
 
 const hue = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
 
@@ -128,17 +153,7 @@ export function lobbyHTML(room, me) {
             <button class="tab ${s.mode === 'campaign' ? 'on' : ''}" data-mode="campaign" ${dis}>🎯 ${t('modeCampaign')}</button>
             <button class="tab ${s.mode === 'free' ? 'on' : ''}" data-mode="free" ${dis}>${t('modeFree')}</button>
           </div>
-          ${
-            s.mode === 'free'
-              ? free
-              : `${
-                  s.mode === 'campaign'
-                    ? `<div class="campaign-box"><b>🎯 ${t('modeCampaign')}</b><p>${t('campaignHint')}</p>${
-                        room.campaign?.best ? `<p class="small">${t('campaignStreak')}: <b>${room.campaign.streak}</b> · ${t('campaignBest')}: <b>${room.campaign.best}/${LEVELS.length}</b></p>` : ''
-                      }<p class="small muted">${t('campaignPick')}</p></div>`
-                    : ''
-                }<div class="levels">${levels}</div>`
-          }
+          ${s.mode === 'free' ? free : s.mode === 'campaign' ? campaignLobbyHTML(room, isHost) : `<div class="levels">${levels}</div>`}
           <div class="field-label">${t('options')}</div>
           <div class="toggles">
             ${toggle('splitManual', t('splitManual'), t('splitManualHint'))}
@@ -166,7 +181,13 @@ export function lobbyHTML(room, me) {
       <div class="start-bar">
         ${
           isHost
-            ? `<button class="btn btn-primary btn-big" data-ui="start">${s.mode === 'campaign' ? `🎯 ${t('startCampaign', { n: LEVELS.findIndex((l) => l.id === s.levelId) + 1 })}` : `💣 ${t('start')}`}</button>`
+            ? `<button class="btn btn-primary btn-big" data-ui="start">${
+                s.mode === 'campaign'
+                  ? room.campaign?.run && !room.campaign.run.over
+                    ? `▶ ${t('campaignContinue', { n: room.campaign.run.stage })}`
+                    : `🎯 ${t('campaignStart')}`
+                  : `💣 ${t('start')}`
+              }</button>`
             : `<div class="waiting">${t('waitingHost')}</div>`
         }
       </div>

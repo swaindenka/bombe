@@ -1,24 +1,34 @@
 import { t, moduleName, getLang } from './i18n.js';
 import { esc, formatDuration } from './dom.js';
-import { LEVELS } from '/shared/levels.js';
+import { opName, livesHTML, pipsHTML, briefHTML } from './campaign-ui.js';
 
-/** Kampanya: sonraki bombaya geri sayım, durdur / şimdi başla */
+/** Kampanya: canlar, bölüm şeridi, sonraki bölüm brifingi ve geri sayım */
 function campaignHTML(r, isHost) {
   const c = r.campaign;
   if (!c) return '';
-  if (c.complete) return `<div class="auto-next done"><b>🏆 ${t('campaignComplete')}</b><span>${t('campaignStreak')}: ${c.streak}</span></div>`;
+  const head = `<div class="camp-name">🎯 ${opName(c.seed)} · ${t('campaignStage')} ${c.played}/${c.total}</div>
+    <div class="camp-line">${livesHTML(c.lives, c.maxLives)} · ${t('campaignScore')}: <b>${c.score}</b></div>${pipsHTML(c)}`;
+  if (c.over) {
+    const reached = c.won ? c.total : Math.max(0, c.stage - 1);
+    return `<div class="auto-next ${c.won ? 'done' : 'over'}">${head}
+      <b class="camp-final">${c.won ? `🏆 ${t('campaignWon')}` : `💀 ${t('campaignOver')}`}</b>
+      <span>${t('campaignReached', { n: reached })}</span>
+      ${isHost ? `<div class="auto-actions"><button class="btn btn-primary" data-ui="again">🎯 ${t('campaignNew')}</button></div>` : ''}
+    </div>`;
+  }
   const a = r.autoNext;
-  if (!a) return '';
-  const lv = LEVELS.find((l) => l.id === a.levelId);
-  const name = `${a.level}/${c.total} · ${esc(lv?.name[getLang()] || '')}`;
-  const head = a.retry ? t('retryLevel', { name }) : t('nextLevel', { name });
-  const timer = a.held
-    ? `<span class="muted">${t('autoHeld')}</span>`
-    : `<span>${t('startsIn')} <b data-autocount>${Math.ceil((a.inMs || 0) / 1000)}</b> ${t('seconds')}</span>`;
-  const buttons = isHost
-    ? `<button class="btn btn-primary" data-ui="again">▶ ${t('startNow')}</button>${a.held ? '' : `<button class="btn" data-ui="hold">⏸ ${t('holdAuto')}</button>`}`
-    : '';
-  return `<div class="auto-next ${a.retry ? 'retry' : ''}"><b>${a.retry ? '🔁' : '⏭'} ${head}</b>${timer}<span class="streak">🔥 ${t('campaignStreak')}: ${c.streak}</span><div class="auto-actions">${buttons}</div></div>`;
+  const timer = !a
+    ? ''
+    : a.held
+      ? `<span class="muted">${t('autoHeld')}</span>`
+      : `<span>${t('startsIn')} <b data-autocount>${Math.ceil((a.inMs || 0) / 1000)}</b> ${t('seconds')}</span>`;
+  const buttons = isHost && a ? `<button class="btn btn-primary" data-ui="again">▶ ${t('startNow')}</button>${a.held ? '' : `<button class="btn" data-ui="hold">⏸ ${t('holdAuto')}</button>`}` : '';
+  return `<div class="auto-next ${a?.retry ? 'retry' : ''}">${head}
+    <b>${a?.retry ? `🔁 ${t('retryStage')}` : `⏭ ${t('nextStage')}`}</b>
+    ${briefHTML(c.next)}
+    ${timer}
+    <div class="auto-actions">${buttons}</div>
+  </div>`;
 }
 
 function reportHTML(r) {
@@ -68,7 +78,7 @@ export function resultHTML(r, room, me) {
         <div class="result-actions">
           ${
             isHost
-              ? `${r.autoNext ? '' : `<button class="btn btn-primary" data-ui="again">💣 ${t('playAgain')}</button>`}<button class="btn" data-ui="lobby">${t('backToLobby')}</button>`
+              ? `${r.autoNext || r.campaign ? '' : `<button class="btn btn-primary" data-ui="again">💣 ${t('playAgain')}</button>`}<button class="btn" data-ui="lobby">${t('backToLobby')}</button>`
               : `<div class="waiting">${r.autoNext && !r.autoNext.held ? '' : t('waitingHostShort')}</div>`
           }
         </div>

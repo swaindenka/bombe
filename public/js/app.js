@@ -320,6 +320,7 @@ document.addEventListener('click', (e) => {
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');
   else if (ui === 'hold') socket.emit('campaign:hold');
+  else if (ui === 'campaignNew' && confirm(t('campaignNewConfirm'))) socket.emit('campaign:new');
   else if (ui === 'lang') {
     setLang(el.dataset.lang);
     if (state.screen === 'home') showHome();

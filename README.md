@@ -14,7 +14,11 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 
 - **Gerçek zamanlı çok oyunculu:** Node.js + Socket.IO sunucusu. Çözümler sunucuda tutulur; imhacının tarayıcısına yalnızca gördüğü şey gönderilir.
 - **17 modül:** 13 normal ve 4 sürekli ilgi isteyen modül (aşağıdaki tablo).
-- **Kampanya modu:** Seçilen seviyeden başlar; bomba imha edilince sonuç ekranında kısa bir geri sayımdan sonra sonraki seviye kendiliğinden gelir, patlarsa aynı seviye yeniden denenir. Oda sahibi "Şimdi başla" ya da "Durdur" diyebilir. Seri ve en ileri seviye takip edilir; 10. seviye geçilince kampanya tamamlanır.
+- **Kampanya modu:** Seviyelerden bağımsız, kendi bölüm sistemi olan 12 bölümlük bir operasyon. Başlatınca doğrudan 1. bölümden ilerlenir.
+  - Her kampanya rastgele üretilir: kod adı (ör. "Operasyon Paslı Fener"), her bölümün mekânı, modül sayısı ve havuzu, öne çıkan modülü, süresi, hata hakkı ve **koşulları** (Karanlık oda, Sarsıntılı bölge, Hatlarda parazit, Hızlı sayaç, Kırılgan, Kalabalık, Ek süre) her seferinde farklıdır.
+  - Zorluk eğrisi sabittir: bölüm ilerledikçe modül sayısı artar, süre kısalır, zor modüller ve koşullar açılır. Bir kampanyada aynı modül iki kez öne çıkmaz.
+  - Takımın 3 canı var. İmha edince sonraki bölümün brifingi ve geri sayımı gösterilir, bölüm kendiliğinden başlar. Patlarsa 1 can gider ve bölüm *farklı bir bombayla* tekrar gelir. Canlar biterse kampanya biter, 12. bölüm geçilirse operasyon tamamlanır.
+  - Oda sahibi "Şimdi başla", "Durdur" ve "Yeni kampanya" diyebilir. Odadaki en iyi kampanya sonucu saklanır.
 - **Modül adları (isteğe bağlı):** Lobideki "Modül adlarını göster" seçeneği açıkken imhacının bombasında her modülün altında, kılavuzdaki başlıkla aynı adı taşıyan bir etiket görünür. Yeni başlayanlar için idealdir.
 - **10 seviye ve serbest mod:** Seviyeler modülleri kademeli tanıtır; her seviye 2–3 yeni şey getirir ve lobide "Yeni:" rozetiyle gösterir. Tamamlanan seviyeler ✓ ile işaretlenir. Serbest modda süre, modül sayısı, hata hakkı ve modül havuzu seçilir.
 - **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır; kilitli sayfada o bölümün kimde olduğu yazar.

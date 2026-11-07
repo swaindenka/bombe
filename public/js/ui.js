@@ -8,13 +8,27 @@ import { getPref, setPref } from './prefs.js';
 import { LEVELS } from '/shared/levels.js';
 import { getLang } from './i18n.js';
 import { esc } from './dom.js';
+import { opName, livesHTML, modifiersHTML } from './campaign-ui.js';
+import { placeName } from '/shared/campaign.js';
+import { MODIFIERS } from '/shared/campaign.js';
 
-/** Üst çubukta hangi seviye / modda oynandığı */
+/** Üst çubukta hangi seviye / mod / kampanya bölümünde oynandığı */
 export function levelChip(init) {
+  const c = init.campaign;
+  if (c) {
+    const mods = (c.modifiers || []).map((id) => MODIFIERS[id].icon).join('');
+    return `<span class="level-chip">🎯 ${t('campaignStage')} ${c.stage}/${c.total} · ${livesHTML(c.lives, c.maxLives)}${mods ? ` · ${mods}` : ''}</span>`;
+  }
   if (!init.levelId) return init.mode === 'free' ? `<span class="level-chip">🎲 ${t('modeFree')}</span>` : '';
   const i = LEVELS.findIndex((l) => l.id === init.levelId);
-  const icon = init.mode === 'campaign' ? '🎯' : '🏁';
-  return `<span class="level-chip">${icon} ${t('levelShort')} ${i + 1}/${LEVELS.length} · ${esc(LEVELS[i]?.name[getLang()] || '')}</span>`;
+  return `<span class="level-chip">🏁 ${t('levelShort')} ${i + 1}/${LEVELS.length} · ${esc(LEVELS[i]?.name[getLang()] || '')}</span>`;
+}
+
+/** Geri sayım ekranında bölüm brifingi */
+export function campaignIntroHTML(init) {
+  const c = init.campaign;
+  if (!c) return '';
+  return `<div class="cd-brief"><div class="cd-op">${opName(c.seed)}</div><div class="cd-stage">${t('campaignStage')} ${c.stage}/${c.total} · ${esc(placeName(c.place, getLang()))}</div><div class="cd-mods">${modifiersHTML(c.modifiers)}</div></div>`;
 }
 
 export function barControls(isHost, { paused = false } = {}) {
@@ -119,7 +133,7 @@ export function bindSettings(layer) {
   });
 }
 
-export function countdownOverlay(el, ms, onDone) {
+export function countdownOverlay(el, ms, onDone, extraHTML = '') {
   if (!el || ms <= 0) {
     onDone?.();
     return () => {};
@@ -139,7 +153,7 @@ export function countdownOverlay(el, ms, onDone) {
     const n = Math.ceil(left / 1000);
     if (n !== last) {
       last = n;
-      el.innerHTML = `<div class="cd-label">${t('getReady')}</div><div class="cd-num">${n}</div>`;
+      el.innerHTML = `${extraHTML}<div class="cd-label">${t('getReady')}</div><div class="cd-num">${n}</div>`;
       sound.countdown(false);
     }
     raf = requestAnimationFrame(step);

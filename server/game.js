@@ -35,7 +35,10 @@ export class Game {
     this.totalMs = config.time * 1000;
     this.maxStrikes = config.strikes;
     this.strikes = 0;
-    this.rate = 1;
+    this.baseRate = config.timerRate || 1; // kampanya koşulu: hızlı sayaç
+    this.rate = this.baseRate;
+    this.eventTypes = config.eventTypes?.length ? config.eventTypes : EVENT_TYPES;
+    this.eventGap = (ms) => Math.round(ms / (config.eventRate || 1));
     this.elapsed = 0;
     this.lastTick = null;
     this.started = false;
@@ -135,7 +138,7 @@ export class Game {
     for (const m of this.modules) {
       if (m.needy) m.nextAt = now + this.rng.int(...NEEDY_TIMING.firstDelay);
     }
-    if (this.config.events) this.nextEventAt = now + this.rng.int(30000, 55000);
+    if (this.config.events) this.nextEventAt = now + this.eventGap(this.rng.int(30000, 55000));
     this.syncTimer();
     this.interval = setInterval(() => this.tick(), TICK_MS);
   }
@@ -187,8 +190,8 @@ export class Game {
       }
     }
     if (now >= this.nextEventAt) {
-      this.fireEvent(this.rng.pick(EVENT_TYPES));
-      this.nextEventAt = now + this.rng.int(35000, 70000);
+      this.fireEvent(this.rng.pick(this.eventTypes));
+      this.nextEventAt = now + this.eventGap(this.rng.int(35000, 70000));
     }
     if (now - this.lastSync >= TIMER_SYNC_MS) this.syncTimer();
   }
@@ -206,7 +209,7 @@ export class Game {
     this.advance();
     this.strikes++;
     if (m) m.strikes++;
-    this.rate = 1 + STRIKE_SPEEDUP * this.strikes;
+    this.rate = this.baseRate * (1 + STRIKE_SPEEDUP * this.strikes);
     this.hooks.toAll?.('game:strike', { moduleId: m ? m.id : null, strikes: this.strikes, maxStrikes: this.maxStrikes });
     if (this.strikes >= this.maxStrikes) {
       this.end('exploded', 'strikes');
