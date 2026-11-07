@@ -14,6 +14,8 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 
 - **Gerçek zamanlı çok oyunculu:** Node.js + Socket.IO sunucusu. Çözümler sunucuda tutulur; imhacının tarayıcısına yalnızca gördüğü şey gönderilir.
 - **17 modül:** 13 normal ve 4 sürekli ilgi isteyen modül (aşağıdaki tablo).
+- **Kampanya modu:** Seçilen seviyeden başlar; bomba imha edilince sonuç ekranında kısa bir geri sayımdan sonra sonraki seviye kendiliğinden gelir, patlarsa aynı seviye yeniden denenir. Oda sahibi "Şimdi başla" ya da "Durdur" diyebilir. Seri ve en ileri seviye takip edilir; 10. seviye geçilince kampanya tamamlanır.
+- **Modül adları (isteğe bağlı):** Lobideki "Modül adlarını göster" seçeneği açıkken imhacının bombasında her modülün altında, kılavuzdaki başlıkla aynı adı taşıyan bir etiket görünür. Yeni başlayanlar için idealdir.
 - **10 seviye ve serbest mod:** Seviyeler modülleri kademeli tanıtır; her seviye 2–3 yeni şey getirir ve lobide "Yeni:" rozetiyle gösterir. Tamamlanan seviyeler ✓ ile işaretlenir. Serbest modda süre, modül sayısı, hata hakkı ve modül havuzu seçilir.
 - **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır; kilitli sayfada o bölümün kimde olduğu yazar.
 - **Dönen roller:** Her bombadan sonra imhacı sıradaki oyuncu olur.

@@ -125,14 +125,26 @@ export function lobbyHTML(room, me) {
           ${isHost ? '' : `<p class="muted small">${t('onlyHost')}</p>`}
           <div class="tabs">
             <button class="tab ${s.mode === 'level' ? 'on' : ''}" data-mode="level" ${dis}>${t('modeLevels')}</button>
+            <button class="tab ${s.mode === 'campaign' ? 'on' : ''}" data-mode="campaign" ${dis}>🎯 ${t('modeCampaign')}</button>
             <button class="tab ${s.mode === 'free' ? 'on' : ''}" data-mode="free" ${dis}>${t('modeFree')}</button>
           </div>
-          ${s.mode === 'level' ? `<div class="levels">${levels}</div>` : free}
+          ${
+            s.mode === 'free'
+              ? free
+              : `${
+                  s.mode === 'campaign'
+                    ? `<div class="campaign-box"><b>🎯 ${t('modeCampaign')}</b><p>${t('campaignHint')}</p>${
+                        room.campaign?.best ? `<p class="small">${t('campaignStreak')}: <b>${room.campaign.streak}</b> · ${t('campaignBest')}: <b>${room.campaign.best}/${LEVELS.length}</b></p>` : ''
+                      }<p class="small muted">${t('campaignPick')}</p></div>`
+                    : ''
+                }<div class="levels">${levels}</div>`
+          }
           <div class="field-label">${t('options')}</div>
           <div class="toggles">
             ${toggle('splitManual', t('splitManual'), t('splitManualHint'))}
             ${toggle('rotateRoles', t('rotateRoles'), t('rotateRolesHint'))}
             ${toggle('expertsSeeTimer', t('expertsSeeTimer'), t('expertsSeeTimerHint'))}
+            ${toggle('showModuleNames', t('showModuleNames'), t('showModuleNamesHint'))}
           </div>
           <div class="bomb-lang">
             <span><b>${t('bombLang')}</b><small>${t('bombLangHint')}</small></span>
@@ -154,7 +166,7 @@ export function lobbyHTML(room, me) {
       <div class="start-bar">
         ${
           isHost
-            ? `<button class="btn btn-primary btn-big" data-ui="start">💣 ${t('start')}</button>`
+            ? `<button class="btn btn-primary btn-big" data-ui="start">${s.mode === 'campaign' ? `🎯 ${t('startCampaign', { n: LEVELS.findIndex((l) => l.id === s.levelId) + 1 })}` : `💣 ${t('start')}`}</button>`
             : `<div class="waiting">${t('waitingHost')}</div>`
         }
       </div>
