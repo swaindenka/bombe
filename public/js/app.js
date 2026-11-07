@@ -10,6 +10,7 @@ import { manualHTML, bindManual } from './manual.js';
 import { DefuserView } from './bomb.js';
 import { ExpertView } from './expert.js';
 import { applyPrefs } from './prefs.js';
+import { VERSION } from '/shared/version.js';
 import { settingsHTML, bindSettings } from './ui.js';
 
 applyPrefs();
@@ -266,6 +267,7 @@ document.addEventListener('click', (e) => {
   else if (ui === 'manual') openManual();
   else if (ui === 'closeManual') closeManual();
   else if (ui === 'settings') toggleSettings();
+  else if (ui === 'reload') location.reload();
   else if (ui === 'closeSettings' && (e.target === el || el.tagName === 'BUTTON')) toggleSettings(false);
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');
@@ -302,7 +304,18 @@ socket.on('connect_error', () => {
   banner.classList.add('on');
 });
 
+let warnedVersion = false;
+function checkVersion(v) {
+  if (!v || v === VERSION || warnedVersion) return;
+  warnedVersion = true;
+  const box = document.createElement('div');
+  box.className = 'update-banner';
+  box.innerHTML = `<span>🔄 ${t('newVersion')}</span><button class="btn btn-small btn-primary" data-ui="reload">${t('reload')}</button>`;
+  document.body.appendChild(box);
+}
+
 socket.on('room:state', (room) => {
+  checkVersion(room.version);
   state.room = room;
   route();
 });

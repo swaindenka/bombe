@@ -14,8 +14,11 @@ export function createServer({ port = 3000, dataFile, gameOptions } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.get('/health', (_req, res) => res.json({ ok: true }));
-  app.use('/shared', express.static(path.join(ROOT, 'shared'), { maxAge: '1h' }));
-  app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h' }));
+  // no-cache: tarayıcı dosyayı saklar ama her açılışta ETag ile sorar. Böylece sunucu
+  // güncellenince eski JS dosyaları kullanılmaz (değişmeyen dosyalar için sadece 304 döner).
+  const statics = { etag: true, lastModified: true, setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache') };
+  app.use('/shared', express.static(path.join(ROOT, 'shared'), statics));
+  app.use(express.static(path.join(ROOT, 'public'), statics));
 
   const server = http.createServer(app);
   const io = new Server(server, { maxHttpBufferSize: 64 * 1024 });
