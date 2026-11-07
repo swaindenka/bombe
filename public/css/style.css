@@ -789,3 +789,26 @@ td.mono { font: 700 17px var(--mono); letter-spacing: .06em; }
 .crash-card pre { text-align: left; white-space: pre-wrap; word-break: break-word; background: #0b0d10; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 12.5px/1.45 var(--mono); color: #ffb39f; max-height: 200px; overflow: auto; }
 .crash-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .version-tag { text-align: center; color: #4c5663; font: 12px var(--mono); margin: 18px 0 0; }
+
+/* Modül ad şeridi (etiket makinesi bandı) */
+.mod-name {
+  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%) rotate(-1deg); z-index: 3; pointer-events: none;
+  background: #151515; color: #f2f2f2; font: 700 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 9px 3px; border-radius: 2px; white-space: nowrap; box-shadow: 0 2px 3px rgba(0, 0, 0, .6);
+  text-shadow: 0 -1px 0 rgba(255, 255, 255, .15);
+}
+.level-chip { font: 700 13px var(--body); padding: 4px 10px; border-radius: 20px; background: var(--panel-2); border: 1px solid var(--line); color: #ffd2c4; white-space: nowrap; }
+
+/* Kampanya */
+.campaign-box { background: linear-gradient(135deg, #2b2220, #1d2025); border: 1px solid #4a2a20; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.campaign-box p { margin: 6px 0 0; }
+.auto-next { margin: 14px 0 4px; background: linear-gradient(135deg, #1d2b22, #1a2026); border: 1px solid #2f5a3d; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.auto-next.retry { background: linear-gradient(135deg, #2b2220, #1d2025); border-color: #6b3a20; }
+.auto-next.done { border-color: #8a6d10; background: linear-gradient(135deg, #3a300c, #1d2025); font-size: 18px; }
+.auto-next b[data-autocount] { font: 700 26px var(--mono); color: #ffd36b; }
+.auto-next .streak { color: #ffb39f; font-size: 13.5px; }
+.auto-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.auto-actions:empty { display: none; }
+/* Uzun sonuç kartı ekrandan taşınca üstü kesilmesin, kaydırılabilsin */
+.result-overlay { align-items: flex-start; }
+.result-card { margin: auto; }

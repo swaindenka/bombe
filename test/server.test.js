@@ -16,8 +16,8 @@ const once = (socket, ev, ms = 4000) =>
 const emit = (socket, ev, data) => new Promise((resolve) => socket.emit(ev, data, resolve));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function setup(n = 3) {
-  const srv = await createServer({ port: 0, dataFile: null, gameOptions: { startDelayMs: 30 } });
+async function setup(n = 3, gameOptions = {}) {
+  const srv = await createServer({ port: 0, dataFile: null, gameOptions: { startDelayMs: 30, ...gameOptions } });
   const url = `http://localhost:${srv.port}`;
   const clients = [];
   for (let i = 0; i < n; i++) {
@@ -314,6 +314,98 @@ test('uzmanlar ortak not defterini paylaşır, sonuçta modül raporu ve puan ge
     assert.ok(r.modules.every((m) => m.solvedAtMs >= 0 && m.strikes === 0));
     assert.ok(r.score > 1000);
     assert.equal(room.team.points, r.score);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('kampanya: imha edilince sonraki seviye, patlayınca aynı seviye kendiliğinden başlar', async () => {
+  const { clients, room, cleanup } = await setup(2, { autoNextMs: 250 });
+  try {
+    clients[0].emit('room:settings', { mode: 'campaign', levelId: 'l1' });
+    await wait(30);
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    await wait(80);
+    const defSock = () => clients[[...room.players.values()].findIndex((p) => p.id === room.gameDefuserId)];
+    let end = once(clients[0], 'game:end', 8000);
+    await solveAll(room, defSock());
+    let r = await end;
+    assert.equal(r.outcome, 'defused');
+    assert.equal(r.autoNext.levelId, 'l2');
+    assert.equal(r.autoNext.retry, false);
+    assert.ok(r.autoNext.inMs > 0 && r.autoNext.inMs <= 250);
+    assert.deepEqual(r.campaign, { level: 1, total: 10, streak: 1, best: 1, complete: false });
+
+    // Kendiliğinden ikinci seviye başlar
+    const init2 = await once(clients[0], 'game:init', 3000);
+    assert.equal(init2.levelId, 'l2');
+    assert.equal(init2.mode, 'campaign');
+    await wait(80);
+    end = once(clients[0], 'game:end', 8000);
+    while (!room.game.ended) room.game.strike(null);
+    r = await end;
+    assert.equal(r.outcome, 'exploded');
+    assert.equal(r.autoNext.levelId, 'l2', 'patlayınca aynı seviye tekrar denenir');
+    assert.equal(r.autoNext.retry, true);
+    assert.equal(r.campaign.streak, 0);
+    assert.equal(r.campaign.best, 1);
+
+    // Durdur: otomatik başlangıç iptal
+    await wait(40); // önceki game:end iki istemciye de ulaşsın
+    const held = once(clients[1], 'game:end');
+    clients[1].emit('campaign:hold'); // oda sahibi değil: yok sayılır
+    clients[0].emit('campaign:hold');
+    const h = await held;
+    assert.equal(h.autoNext.held, true);
+    await wait(400);
+    assert.equal(room.phase, 'result', 'durdurulunca yeni bomba gelmemeli');
+    // Oda sahibi elle devam eder
+    clients[0].emit('game:start');
+    const init3 = await once(clients[0], 'game:init');
+    assert.equal(init3.levelId, 'l2');
+  } finally {
+    await cleanup();
+  }
+});
+
+test('kampanya: son seviye geçilince tamamlanır ve otomatik başlangıç olmaz', async () => {
+  const { clients, room, cleanup } = await setup(2, { autoNextMs: 100 });
+  try {
+    clients[0].emit('room:settings', { mode: 'campaign', levelId: 'l10' });
+    await wait(30);
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    await wait(80);
+    for (const m of room.game.regularModules) {
+      m.solved = true;
+    }
+    const end = once(clients[0], 'game:end');
+    room.game.end('defused', 'solved');
+    const r = await end;
+    assert.equal(r.campaign.complete, true);
+    assert.equal(r.autoNext, undefined);
+    await wait(250);
+    assert.equal(room.phase, 'result');
+  } finally {
+    await cleanup();
+  }
+});
+
+test('modül adları seçeneği imhacıya iletilir', async () => {
+  const { clients, joins, room, cleanup } = await setup(2);
+  try {
+    assert.equal(room.settings.showModuleNames, false);
+    clients[0].emit('room:settings', { showModuleNames: 'evet' }); // geçersiz tür yok sayılır
+    clients[0].emit('room:defuser', { playerId: joins[1].playerId });
+    await wait(30);
+    assert.equal(room.settings.showModuleNames, false);
+    clients[0].emit('room:settings', { showModuleNames: true });
+    await wait(30);
+    clients[0].emit('game:start');
+    const d = await once(clients[1], 'game:init');
+    assert.equal(d.role, 'defuser');
+    assert.equal(d.showModuleNames, true);
   } finally {
     await cleanup();
   }

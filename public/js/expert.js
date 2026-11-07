@@ -5,7 +5,7 @@ import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { manualHTML, bindManual } from './manual.js';
 import { notesHTML, NotesPanel } from './notes.js';
-import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip } from './ui.js';
 
 export class ExpertView {
   constructor(root, init, { timer, isHost }) {
@@ -44,7 +44,7 @@ export class ExpertView {
     this.root.innerHTML = `
       <div class="game game-expert ${wide ? 'notes-open' : ''}">
         <header class="game-bar">
-          <div class="bar-left"><span class="role-badge r-expert">📖 ${t('youAreExpert')}</span><span class="bar-note">${esc(t('defuserIs', { name: this.init.defuserName }))}</span></div>
+          <div class="bar-left"><span class="role-badge r-expert">📖 ${t('youAreExpert')}</span>${levelChip(this.init)}<span class="bar-note">${esc(t('defuserIs', { name: this.init.defuserName }))}</span></div>
           <div class="bar-mid">
             <span class="hud hud-strikes" id="hudStrikes" title="${t('strikesLabel')}"></span>
             <span class="hud hud-solved" id="hudSolved"></span>

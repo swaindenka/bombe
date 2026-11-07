@@ -97,15 +97,32 @@ function showLoading() {
   screen.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
 }
 
+let autoTick = null;
 function showResult() {
+  clearInterval(autoTick);
   if (!state.result) {
     resultLayer.innerHTML = '';
     return;
   }
   resultLayer.innerHTML = resultHTML(state.result, state.room, state.me);
+  // Kampanya geri sayımı
+  const a = state.result.autoNext;
+  if (a && !a.held && state.autoAt) {
+    const el = () => resultLayer.querySelector('[data-autocount]');
+    autoTick = setInterval(() => {
+      const left = Math.max(0, Math.ceil((state.autoAt - performance.now()) / 1000));
+      if (el()) el().textContent = left;
+      if (left <= 3 && left > 0 && left !== state.lastBeep) {
+        state.lastBeep = left;
+        sound.countdown(false);
+      }
+      if (!left) clearInterval(autoTick);
+    }, 200);
+  }
 }
 
 function hideResult() {
+  clearInterval(autoTick);
   resultLayer.innerHTML = '';
 }
 
@@ -302,6 +319,7 @@ document.addEventListener('click', (e) => {
   else if (ui === 'closeSettings' && (e.target === el || el.tagName === 'BUTTON')) toggleSettings(false);
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');
+  else if (ui === 'hold') socket.emit('campaign:hold');
   else if (ui === 'lang') {
     setLang(el.dataset.lang);
     if (state.screen === 'home') showHome();
@@ -372,10 +390,13 @@ socket.on('notes:update', (n) => state.view?.onNotes?.(n));
 socket.on('game:end', (r) => {
   const first = !state.result;
   state.result = r;
+  state.autoAt = r.autoNext && !r.autoNext.held ? performance.now() + (r.autoNext.inMs || 0) : 0;
+  state.lastBeep = null;
   if (first) state.view?.onEnd?.(r);
-  const delay = state.view ? (r.outcome === 'exploded' ? 1500 : 700) : 0;
-  state.resultAt = performance.now() + delay;
-  setTimeout(() => state.result && state.room?.phase === 'result' && showResult(), delay);
+  // İlk sonuçta patlama/kutlama animasyonu için kısa bekle; güncellemeler (ör. Durdur) hemen görünsün
+  const delay = first && state.view ? (r.outcome === 'exploded' ? 1500 : 700) : 0;
+  state.resultAt = Math.max(state.resultAt || 0, performance.now() + delay);
+  setTimeout(() => state.result && state.room?.phase === 'result' && showResult(), Math.max(0, state.resultAt - performance.now()));
 });
 
 route();

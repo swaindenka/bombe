@@ -5,6 +5,18 @@ import { sound } from './audio.js';
 import { socket } from './net.js';
 import { getPref, setPref } from './prefs.js';
 
+import { LEVELS } from '/shared/levels.js';
+import { getLang } from './i18n.js';
+import { esc } from './dom.js';
+
+/** Üst çubukta hangi seviye / modda oynandığı */
+export function levelChip(init) {
+  if (!init.levelId) return init.mode === 'free' ? `<span class="level-chip">🎲 ${t('modeFree')}</span>` : '';
+  const i = LEVELS.findIndex((l) => l.id === init.levelId);
+  const icon = init.mode === 'campaign' ? '🎯' : '🏁';
+  return `<span class="level-chip">${icon} ${t('levelShort')} ${i + 1}/${LEVELS.length} · ${esc(LEVELS[i]?.name[getLang()] || '')}</span>`;
+}
+
 export function barControls(isHost, { paused = false } = {}) {
   return `
     <button class="icon-btn" data-ctl="sound" title="${t('sound')}" aria-label="${t('sound')}">${sound.muted ? '🔇' : '🔊'}</button>

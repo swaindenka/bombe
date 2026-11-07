@@ -82,7 +82,7 @@ export function sanitizeFree(f = {}) {
 
 /** Oda ayarlarından bu turun bomba yapılandırmasını çıkarır */
 export function bombConfig(settings) {
-  if (settings.mode === 'level') {
+  if (settings.mode === 'level' || settings.mode === 'campaign') {
     const lv = LEVELS.find((l) => l.id === settings.levelId) || LEVELS[0];
     return {
       levelId: lv.id,

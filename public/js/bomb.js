@@ -1,11 +1,11 @@
 // İmhacı ekranı: bombanın ön/arka yüzü, kenarlar, sayaç, olay efektleri.
 
 import { RENDERERS as KNOWN } from './modules/index.js';
-import { t, bombText } from './i18n.js';
+import { t, bombText, moduleName } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { socket } from './net.js';
-import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip } from './ui.js';
 import { reportError } from './errors.js';
 
 // Tanınmayan modül (eski önbellekli istemci) bütün ekranı çökertmesin
@@ -82,7 +82,7 @@ export class DefuserView {
     this.root.innerHTML = `
       <div class="game game-defuser">
         <header class="game-bar">
-          <div class="bar-left"><span class="role-badge r-defuser">💣 ${t('youAreDefuser')}</span><span class="bar-note">${t('noPeeking')}</span></div>
+          <div class="bar-left"><span class="role-badge r-defuser">💣 ${t('youAreDefuser')}</span>${levelChip(this.init)}<span class="bar-note">${t('noPeeking')}</span></div>
           <div class="bar-right">${barControls(this.isHost, { paused: this.paused })}</div>
         </header>
         <main class="stage" id="stage">
@@ -131,6 +131,7 @@ export class DefuserView {
         <span class="mod-led"></span>
         ${m.needy ? `<span class="needy-timer lcd" data-needy="${m.id}">--</span>` : ''}
         <div class="mod-body">${safeRender(m.type, m.view, { lang: this.lang, id: m.id })}</div>
+        ${this.init.showModuleNames ? `<span class="mod-name">${esc(moduleName(m.type, this.lang))}</span>` : ''}
         <div class="solved-stamp" aria-hidden="true">✓</div>
       </div>`;
   }
