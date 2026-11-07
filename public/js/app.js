@@ -11,6 +11,7 @@ import { DefuserView } from './bomb.js';
 import { ExpertView } from './expert.js';
 import { applyPrefs } from './prefs.js';
 import { VERSION } from '/shared/version.js';
+import { reportError, installGlobalHandlers } from './errors.js';
 import { settingsHTML, bindSettings } from './ui.js';
 
 applyPrefs();
@@ -70,6 +71,7 @@ function showHome() {
         </ol>
         <button class="btn btn-ghost" data-ui="manual">📖 ${t('readManual')}</button>
       </section>
+      <p class="version-tag">BOMBE v${VERSION}</p>
     </div>`;
   const code = document.getElementById('codeInput');
   code.addEventListener('input', () => (code.value = code.value.toUpperCase().replace(/[^A-Z]/g, '')));
@@ -171,8 +173,36 @@ function mountGame(init) {
   timer.sync(init.timer);
   screen.innerHTML = '';
   const opts = { timer, isHost: state.room?.hostId === state.me };
-  state.view = init.role === 'defuser' ? new DefuserView(screen, init, opts) : new ExpertView(screen, init, opts);
+  try {
+    state.view = init.role === 'defuser' ? new DefuserView(screen, init, opts) : new ExpertView(screen, init, opts);
+  } catch (err) {
+    state.view = null;
+    showCrash(reportError(err, `mount ${init.role}`));
+  }
 }
+
+/** Oyun ekranı açılamazsa boş ekran yerine sebebini göster */
+function showCrash(message) {
+  state.screen = 'crash';
+  screen.innerHTML = `
+    <div class="crash">
+      <div class="crash-card">
+        <div class="crash-icon">⚠</div>
+        <h2>${t('crashTitle')}</h2>
+        <p>${t('crashText')}</p>
+        <pre>${esc(message)}\nv${VERSION} · ${esc(navigator.userAgent)}</pre>
+        <div class="crash-actions">
+          <button class="btn btn-primary" data-ui="reload">⟳ ${t('reload')}</button>
+          ${state.room?.hostId === state.me ? `<button class="btn" data-ui="abortCrash">${t('abort')}</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+installGlobalHandlers((msg) => {
+  if (state.screen === 'game' && !screen.querySelector('.game')) showCrash(msg);
+  else toast('⚠ ' + msg, 'danger', 5000);
+});
 
 // --- Oda işlemleri ---
 
@@ -268,6 +298,7 @@ document.addEventListener('click', (e) => {
   else if (ui === 'closeManual') closeManual();
   else if (ui === 'settings') toggleSettings();
   else if (ui === 'reload') location.reload();
+  else if (ui === 'abortCrash') socket.emit('game:abort');
   else if (ui === 'closeSettings' && (e.target === el || el.tagName === 'BUTTON')) toggleSettings(false);
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');

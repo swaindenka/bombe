@@ -4,6 +4,7 @@ import { t, getLang, moduleName } from './i18n.js';
 import { esc, formatDuration } from './dom.js';
 import { LEVELS, FREE_LIMITS } from '/shared/levels.js';
 import { REGULAR_TYPES, NEEDY_TYPES } from '/shared/modules/index.js';
+import { VERSION } from '/shared/version.js';
 
 const hue = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
 
@@ -157,6 +158,7 @@ export function lobbyHTML(room, me) {
             : `<div class="waiting">${t('waitingHost')}</div>`
         }
       </div>
+      <p class="version-tag">BOMBE v${VERSION}</p>
     </div>`;
 }
 
