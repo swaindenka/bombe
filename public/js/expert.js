@@ -1,6 +1,6 @@
 // Uzman ekranı: kılavuz + ortak not defteri + küçük durum göstergesi.
 
-import { t } from './i18n.js';
+import { t, moduleName } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { manualHTML, bindManual } from './manual.js';
@@ -102,7 +102,7 @@ export class ExpertView {
     sound.setStrikes(s.strikes);
     this.updateHud();
     sound.strike();
-    toast('✕ ' + t('strikeToast'), 'danger', 1500);
+    toast(`✕ ${t('strikeToast')}${s.type ? ' · ' + moduleName(s.type) : ''}`, 'danger', 2200);
     this.pulse('#fxFlash', 'on', 450);
   }
 
@@ -111,6 +111,20 @@ export class ExpertView {
     this.total = s.total;
     this.updateHud();
     sound.solve();
+    if (s.type) toast(`✓ ${t('solvedToast', { name: moduleName(s.type) })}`, 'ok', 2000);
+  }
+
+  /** Sürekli ilgi modülü devreye girdi: haber ver, kılavuzdaki sayfasını işaretle */
+  onNeedy(n) {
+    sound.needyWarn();
+    toast(`⏱ ${t('needyToast', { name: moduleName(n.type) })}`, 'warn', 3500);
+    const a = this.root.querySelector(`.manual-toc a[data-page="${n.type}"]`);
+    if (a) {
+      a.classList.remove('needy-ping');
+      void a.offsetWidth;
+      a.classList.add('needy-ping');
+      this.timeouts.push(setTimeout(() => a.classList.remove('needy-ping'), Math.min(n.activeMs || 30000, 30000)));
+    }
   }
 
   onNotes(n) {

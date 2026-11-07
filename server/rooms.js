@@ -279,6 +279,20 @@ class Room {
     fromSocket.to(this.channel).emit('notes:update', { field, value: v });
   }
 
+  /** Oda sahibi bir oyuncuyu çıkarır (oyun sırasında değil) */
+  kickPlayer(playerId, byId) {
+    if (this.phase === 'playing' || playerId === byId || !this.players.has(playerId)) return;
+    const p = this.players.get(playerId);
+    const sock = p.socketId && this.io.sockets.sockets.get(p.socketId);
+    if (sock) {
+      sock.leave(this.channel);
+      sock.data.code = null;
+      sock.data.playerId = null;
+      sock.emit('room:kicked');
+    }
+    this.removePlayer(playerId);
+  }
+
   abortGame() {
     if (this.phase === 'playing' && this.game) this.game.end('aborted', 'aborted');
   }
@@ -563,6 +577,10 @@ export class RoomManager {
     socket.on(
       'room:settings',
       asHost((room, s) => room.updateSettings(s))
+    );
+    socket.on(
+      'room:kick',
+      asHost((room, p, host) => room.kickPlayer(p && p.playerId, host.id))
     );
     socket.on(
       'room:defuser',

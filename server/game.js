@@ -15,6 +15,10 @@ const STRIKE_SPEEDUP = 0.25;
 const DISPLAY_TOLERANCE_MS = 2500;
 const TIMER_SLOT = 1; // ön yüz, üst orta
 export const SLOT_COUNT = 12;
+// Ön yüz: 0 1 2 / 3 4 5 (1 = sayaç). Sayaca bitişik yuvalar önce.
+const FRONT_NEAR_TIMER = [0, 2, 4];
+const FRONT_OTHER = [3, 5];
+export const FRONT_ONLY = ['rhythm'];
 
 export class Game {
   /**
@@ -70,7 +74,17 @@ export class Game {
       ...pick(config.pool, config.regular).map((t) => ({ type: t, needy: false })),
       ...pick(config.needyPool || [], config.needy).map((t) => ({ type: t, needy: true })),
     ];
-    const slots = rng.shuffle([...Array(SLOT_COUNT).keys()].filter((s) => s !== TIMER_SLOT));
+    // Ritim sayaca bakarak çözülür: sayacın olduğu ön yüze, mümkünse hemen yanına/altına koy
+    const free = rng.shuffle([...Array(SLOT_COUNT).keys()].filter((s) => s !== TIMER_SLOT));
+    const nearTimer = [...rng.shuffle(FRONT_NEAR_TIMER), ...rng.shuffle(FRONT_OTHER)];
+    const slotOf = types.map((t) => {
+      if (!FRONT_ONLY.includes(t.type)) return null;
+      const s = nearTimer.find((x) => free.includes(x));
+      if (s === undefined) return null;
+      free.splice(free.indexOf(s), 1);
+      return s;
+    });
+    const slots = slotOf.map((s) => (s === null ? free.shift() : s));
     return types.map((t, i) => ({
       id: 'm' + i,
       type: t.type,
@@ -182,6 +196,8 @@ export class Game {
         MODULES[m.type].activate(m.state, this.rng, this.edgework, this.lang);
         m.activeUntil = now + this.activeFor(m);
         this.emitModule(m);
+        // Uzmanlar da bilsin: hangi sürekli ilgi modülü devreye girdi
+        this.hooks.toAll?.('game:needy', { moduleId: m.id, type: m.type, activeMs: this.activeFor(m) });
       } else if (m.state.active && now >= m.activeUntil) {
         this.deactivateNeedy(m);
         this.emitModule(m);
@@ -210,7 +226,7 @@ export class Game {
     this.strikes++;
     if (m) m.strikes++;
     this.rate = this.baseRate * (1 + STRIKE_SPEEDUP * this.strikes);
-    this.hooks.toAll?.('game:strike', { moduleId: m ? m.id : null, strikes: this.strikes, maxStrikes: this.maxStrikes });
+    this.hooks.toAll?.('game:strike', { moduleId: m ? m.id : null, type: m ? m.type : null, strikes: this.strikes, maxStrikes: this.maxStrikes });
     if (this.strikes >= this.maxStrikes) {
       this.end('exploded', 'strikes');
       return;
@@ -252,7 +268,7 @@ export class Game {
       if (this.ended) return;
     }
     if (res.solved) {
-      this.hooks.toAll?.('game:solved', { moduleId: m.id, solved: this.solvedCount, total: this.regularModules.length });
+      this.hooks.toAll?.('game:solved', { moduleId: m.id, type: m.type, solved: this.solvedCount, total: this.regularModules.length });
       if (this.regularModules.every((x) => x.solved)) this.end('defused', 'solved');
     }
   }

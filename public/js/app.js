@@ -195,7 +195,24 @@ function mountGame(init) {
   } catch (err) {
     state.view = null;
     showCrash(reportError(err, `mount ${init.role}`));
+    return;
   }
+  showTip(init.role);
+}
+
+/** Her rol için bir kerelik kısa ipucu */
+function showTip(role) {
+  if (storage.get('bombe.tip.' + role, false)) return;
+  // Bombanın üstünü kapatmasın: üst çubuğun altında akışa giren bir şerit; sahne küçülür, bomba yeniden ölçeklenir
+  const bar = screen.querySelector('.game-bar');
+  if (!bar) return;
+  const card = document.createElement('div');
+  card.className = 'tip-card';
+  card.innerHTML = `<b>💡 ${t(role === 'defuser' ? 'tipDefuserTitle' : 'tipExpertTitle')}</b><ul>${t(role === 'defuser' ? 'tipDefuser' : 'tipExpert')
+    .split('|')
+    .map((x) => `<li>${x}</li>`)
+    .join('')}</ul><button class="btn btn-small btn-primary" data-ui="tipOk" data-role="${role}">${t('tipOk')}</button>`;
+  bar.after(card);
 }
 
 /** Oyun ekranı açılamazsa boş ekran yerine sebebini göster */
@@ -320,6 +337,11 @@ document.addEventListener('click', (e) => {
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');
   else if (ui === 'hold') socket.emit('campaign:hold');
+  else if (ui === 'kick' && confirm(t('kickConfirm', { name: el.dataset.name }))) socket.emit('room:kick', { playerId: el.dataset.kick });
+  else if (ui === 'tipOk') {
+    storage.set('bombe.tip.' + el.dataset.role, true);
+    el.closest('.tip-card')?.remove();
+  }
   else if (ui === 'campaignNew' && confirm(t('campaignNewConfirm'))) socket.emit('campaign:new');
   else if (ui === 'lang') {
     setLang(el.dataset.lang);
@@ -370,6 +392,15 @@ socket.on('room:state', (room) => {
   route();
 });
 
+socket.on('room:kicked', () => {
+  storage.remove('bombe.session', true);
+  history.replaceState(null, '', '/');
+  state.room = null;
+  state.me = null;
+  toast(t('kicked'), 'warn', 5000);
+  route();
+});
+
 socket.on('room:replaced', () => {
   storage.remove('bombe.session', true);
   state.room = null;
@@ -385,6 +416,7 @@ socket.on('game:timer', (tp) => {
 });
 socket.on('game:strike', (s) => state.view?.onStrike?.(s));
 socket.on('game:solved', (s) => state.view?.onSolved?.(s));
+socket.on('game:needy', (n) => state.view?.onNeedy?.(n));
 socket.on('game:event', (ev) => state.view?.onEvent?.(ev));
 socket.on('game:paused', (p) => state.view?.onPaused?.(p));
 socket.on('notes:update', (n) => state.view?.onNotes?.(n));

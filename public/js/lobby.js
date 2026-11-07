@@ -52,7 +52,15 @@ export function lobbyHTML(room, me) {
             ${isDef ? `<span class="badge b-defuser">💣 ${t('defuser')}</span>` : `<span class="badge b-expert">📖 ${t('expert')}</span>`}
             ${p.connected ? '' : `<span class="badge b-off">${t('offline')}</span>`}
           </span>
-          ${isHost && !isDef ? `<button class="btn btn-small btn-ghost" data-defuser="${p.id}">${t('makeDefuser')}</button>` : ''}
+          ${
+            isHost
+              ? `<span class="player-actions">${
+                  !isDef && p.connected
+                    ? `<button class="icon-btn" data-defuser="${p.id}" title="${t('makeDefuser')}" aria-label="${t('makeDefuser')}">💣</button>`
+                    : ''
+                }${p.id !== me ? `<button class="icon-btn kick" data-ui="kick" data-kick="${p.id}" data-name="${esc(p.name)}" title="${t('kick')}" aria-label="${t('kick')}">✕</button>` : ''}</span>`
+              : ''
+          }
         </li>`;
     })
     .join('');

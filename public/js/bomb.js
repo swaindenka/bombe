@@ -250,6 +250,8 @@ export class DefuserView {
       } else if (e.key === 'e' || e.key === 'E') {
         this.toggleEdges();
       } else if (KEY_DIR[e.key] && this.hover && this.canAct()) {
+        // Bomba çevrildiyse imlecin altında kalan eski modül artık görünmüyor olabilir
+        if (!this.hover.closest(`.face.${this.view}`)) return;
         const m = this.mods.get(this.hover.dataset.id);
         const make = m && !m.solved && KEY_ACTIONS[m.type];
         if (!make) return;
@@ -273,6 +275,11 @@ export class DefuserView {
     this.root.addEventListener('pointerover', this.onOver);
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('resize', this.onResize);
+    // Sahne boyutu her değiştiğinde (ipucu şeridi, pencere, çubuğun satır atlaması) bomba yeniden ölçeklensin
+    if ('ResizeObserver' in window) {
+      this.resizeObs = new ResizeObserver(() => this.fit());
+      this.resizeObs.observe(this.$('#stage'));
+    }
     window.addEventListener('pointermove', this.onMove);
   }
 
@@ -398,6 +405,8 @@ export class DefuserView {
     this.pulse('#stage', 'jolt', 400);
   }
 
+  onNeedy() {}
+
   onSolved(s) {
     sound.solve();
     const el = s && this.$(`.module[data-id="${s.moduleId}"]`);
@@ -476,6 +485,7 @@ export class DefuserView {
     this.root.removeEventListener('pointerover', this.onOver);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('resize', this.onResize);
+    this.resizeObs?.disconnect();
     window.removeEventListener('pointermove', this.onMove);
     sound.stopAlarm();
     sound.stopMusic();

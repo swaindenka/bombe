@@ -837,3 +837,23 @@ td.mono { font: 700 17px var(--mono); letter-spacing: .06em; }
 .cd-stage { font: 600 18px var(--body); color: #ffd2c4; }
 .cd-mods { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .level-chip .lives { font-size: 12px; }
+
+/* İnceleme sonrası iyileştirmeler */
+.manual-end { min-height: 75vh; text-align: center; color: #4c5663; font: 12px var(--mono); padding-top: 18px; }
+.page.flash-page { animation: flashPage .9s ease-out; }
+@keyframes flashPage { 0% { box-shadow: 0 0 0 4px var(--accent), 0 12px 30px rgba(0, 0, 0, .45); } }
+.manual-toc a.needy-ping { animation: needyPing .9s ease-in-out infinite; color: #fff; }
+@keyframes needyPing { 50% { background: #5a2416; } }
+.player-actions { grid-area: btn; display: flex; gap: 6px; align-items: center; }
+.icon-btn.kick { width: 30px; height: 30px; font-size: 13px; color: var(--muted); }
+.icon-btn.kick:hover { color: #fff; border-color: var(--danger); background: #3a1414; }
+.tip-card { flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: linear-gradient(90deg, #2b2220, #1d2025); border-bottom: 1px solid #6b3a20; padding: 8px 16px; z-index: 4; animation: fadeIn .3s ease; }
+.tip-card b { white-space: nowrap; }
+.tip-card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13.5px; flex: 1; min-width: 260px; }
+.tip-card li::before { content: '›'; color: var(--accent); margin-right: 6px; font-weight: 800; }
+/* Klavye odağı görünür olsun */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible { outline: 3px solid #ffb39f; outline-offset: 2px; }
+.module :where(button):focus-visible, .wire-hit:focus-visible { outline-offset: 0; }
+
+.player-actions .icon-btn { width: 32px; height: 32px; }
+.badge { white-space: nowrap; }

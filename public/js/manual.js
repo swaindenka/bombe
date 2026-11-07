@@ -50,6 +50,7 @@ export function manualHTML({ contentLang = 'tr', manual = { split: false } } = {
       <div class="manual-pages">
         <div class="manual-cover"><div class="cover-logo">BOMBE</div><div class="cover-sub">${L === 'tr' ? 'İmha Uzmanı Kılavuzu · Sürüm 2' : 'Defusal Expert Manual · Version 2'}</div></div>
         ${pages}
+        <div class="manual-end" aria-hidden="true">— ${esc(t('manualEnd'))} —</div>
       </div>
     </div>`;
 }
@@ -64,11 +65,22 @@ const norm = (s) =>
 
 /** İçindekiler, arama ve okunan sayfa vurgusu. Kaldırmak için dönen fonksiyonu çağır. */
 export function bindManual(root) {
+  let lockSpy = 0;
   const index = new Map();
   root.querySelectorAll('.page[data-page]').forEach((p) => index.set(p.dataset.page, norm(p.textContent)));
 
+  const mark = (type) =>
+    root.querySelectorAll('.manual-toc a[data-page]').forEach((a) => a.classList.toggle('active', a.dataset.page === type));
+  // Süreye karşı oynanıyor: kaydırma anında olsun, hedef sayfa kısa bir parlamayla belirsin
   const go = (type) => {
-    root.querySelector(`#page-${type}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const page = root.querySelector(`#page-${type}`);
+    if (!page) return;
+    page.scrollIntoView({ behavior: 'auto', block: 'start' });
+    mark(type);
+    lockSpy = performance.now() + 400;
+    page.classList.remove('flash-page');
+    void page.offsetWidth;
+    page.classList.add('flash-page');
   };
   const onClick = (e) => {
     const a = e.target.closest('.manual-toc a[data-page]');
@@ -122,6 +134,7 @@ export function bindManual(root) {
   if ('IntersectionObserver' in window) {
     observer = new IntersectionObserver(
       (entries) => {
+        if (performance.now() < lockSpy) return;
         for (const en of entries) {
           if (!en.isIntersecting) continue;
           const type = en.target.dataset.page;
