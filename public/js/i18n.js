@@ -173,6 +173,8 @@ const STR = {
     newVersion: 'Oyunun yeni sürümü yüklendi. Sorunsuz oynamak için sayfayı yenile.',
     reload: 'Yenile',
     reloadPage: 'Sayfayı yenileyin',
+    crashTitle: 'Bomba ekranı açılamadı',
+    crashText: 'Tarayıcında bir hata oluştu. Önce sayfayı yenile (Ctrl+F5). Düzelmezse aşağıdaki yazının ekran görüntüsünü gönder.',
   },
   en: {
     tagline: 'One sees the bomb. The others know how to take it apart.',
@@ -344,6 +346,8 @@ const STR = {
     newVersion: 'A new version of the game is available. Reload the page to keep playing smoothly.',
     reload: 'Reload',
     reloadPage: 'Reload the page',
+    crashTitle: 'The bomb screen could not open',
+    crashText: 'Something went wrong in your browser. Reload first (Ctrl+F5). If it keeps happening, send a screenshot of the text below.',
   },
 };
 

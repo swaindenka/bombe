@@ -463,6 +463,12 @@ export class RoomManager {
       c.room.game?.handleAction(String(p.moduleId), p.action, p.t);
     });
 
+    socket.on('client:error', (p = {}) => {
+      const c = this.ctx(socket);
+      const s = (v, n) => String(v ?? '').slice(0, n);
+      console.warn(`[istemci hatası] oda=${c?.room.code || '-'} v=${s(p.version, 12)} ${s(p.where, 80)}: ${s(p.message, 300)}\n  ${s(p.ua, 200)}\n  ${s(p.stack, 600)}`);
+    });
+
     socket.on('disconnect', () => {
       const c = this.ctx(socket);
       if (c && c.player.socketId === socket.id) c.room.detach(c.player);

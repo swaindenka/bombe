@@ -6,10 +6,21 @@ import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { socket } from './net.js';
 import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
+import { reportError } from './errors.js';
 
 // Tanınmayan modül (eski önbellekli istemci) bütün ekranı çökertmesin
 const UNKNOWN = { render: () => `<div class="mod-unknown">⟳<small>${t('reloadPage')}</small></div>` };
 const RENDERERS = new Proxy(KNOWN, { get: (o, k) => o[k] || UNKNOWN });
+
+/** Tek bir modülün çizim hatası bütün bombayı boş bırakmasın */
+function safeRender(type, view, ctx) {
+  try {
+    return RENDERERS[type].render(view, ctx);
+  } catch (err) {
+    reportError(err, `render ${type}`);
+    return `<div class="mod-unknown">⚠<small>${t('reloadPage')}</small></div>`;
+  }
+}
 
 const DESIGN_W = 730;
 const DESIGN_H = 510;
@@ -114,13 +125,12 @@ export class DefuserView {
   }
 
   moduleHTML(m) {
-    const r = RENDERERS[m.type];
     return `
       <div class="module m-${m.type} ${m.needy ? 'needy' : ''} ${m.solved ? 'solved' : ''} ${m.needy && m.view.active ? 'needy-on' : ''}" data-id="${m.id}">
         ${screws()}
         <span class="mod-led"></span>
         ${m.needy ? `<span class="needy-timer lcd" data-needy="${m.id}">--</span>` : ''}
-        <div class="mod-body">${r.render(m.view, { lang: this.lang, id: m.id })}</div>
+        <div class="mod-body">${safeRender(m.type, m.view, { lang: this.lang, id: m.id })}</div>
         <div class="solved-stamp" aria-hidden="true">✓</div>
       </div>`;
   }
@@ -183,7 +193,12 @@ export class DefuserView {
     const r = RENDERERS[m.type];
     if (!r.mount) return;
     const body = this.$(`.module[data-id="${m.id}"] .mod-body`);
-    if (body) this.mounts.set(m.id, r.mount(body, m.view));
+    if (!body) return;
+    try {
+      this.mounts.set(m.id, r.mount(body, m.view));
+    } catch (err) {
+      reportError(err, `mount ${m.type}`);
+    }
   }
 
   canAct() {
@@ -351,7 +366,7 @@ export class DefuserView {
     const body = el.querySelector('.mod-body');
     const r = RENDERERS[mv.type];
     if (r.update && prev && r.update(body, mv.view, prev.view)) return;
-    body.innerHTML = r.render(mv.view, { lang: this.lang, id: mv.id });
+    body.innerHTML = safeRender(mv.type, mv.view, { lang: this.lang, id: mv.id });
     this.mountModule(m);
   }
 
