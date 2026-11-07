@@ -222,3 +222,38 @@ test('seviyenin tanıttığı yeni modüller bombada mutlaka bulunur', async () 
     }
   }
 });
+
+test('kampanya bölümleri: kurallara uyar, tohuma göre değişir, zorluk artar', async () => {
+  const { campaignStage, CAMPAIGN_STAGES, MODIFIERS } = await import('../shared/campaign.js');
+  const { Game } = await import('../server/game.js');
+  const signatures = new Set();
+  const avg = Array(CAMPAIGN_STAGES + 1).fill(0);
+  const N = 60;
+  for (let i = 0; i < N; i++) {
+    const seed = 1000 + i * 7777;
+    let sig = '';
+    const featured = [];
+    for (let s = 1; s <= CAMPAIGN_STAGES; s++) {
+      const c = campaignStage(seed, s);
+      assert.deepEqual(c, campaignStage(seed, s), 'aynı tohum aynı bölümü üretmeli');
+      assert.ok(c.regular >= 3 && c.regular + c.needy <= 11, `modül sayısı (${seed}/${s})`);
+      assert.ok(c.strikes >= 1 && c.time >= 120);
+      assert.ok(c.pool.includes(c.featured));
+      assert.ok(!c.needy || c.needyPool.length, 'sürekli ilgi varsa havuz boş olamaz');
+      if (s <= 2) assert.equal(c.modifiers.length, 0, 'ilk bölümler koşulsuz');
+      for (const m of c.modifiers) assert.ok(MODIFIERS[m].minStage <= s);
+      assert.notDeepEqual(campaignStage(seed, s, 1), c, 'tekrar deneme farklı olmalı');
+      // Gerçek bir bomba üretilebilmeli ve öne çıkan modül bombada olmalı
+      const g = new Game({ config: c, seed: seed + s });
+      assert.ok(g.modules.some((m) => m.type === c.featured));
+      assert.equal(g.modules.filter((m) => !m.needy).length, c.regular);
+      featured.push(c.featured);
+      avg[s] += c.regular / N;
+      sig += `${c.regular}${c.featured}${c.modifiers.join()}${c.time}|`;
+    }
+    assert.equal(new Set(featured).size, CAMPAIGN_STAGES, 'bir kampanyada öne çıkan modül tekrar etmemeli');
+    signatures.add(sig);
+  }
+  assert.equal(signatures.size, N, 'her kampanya farklı olmalı');
+  assert.ok(avg[1] < avg[6] && avg[6] < avg[12], `zorluk artmalı: ${avg.slice(1).map((x) => x.toFixed(1))}`);
+});

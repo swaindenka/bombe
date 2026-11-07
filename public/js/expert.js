@@ -5,7 +5,7 @@ import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { manualHTML, bindManual } from './manual.js';
 import { notesHTML, NotesPanel } from './notes.js';
-import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip } from './ui.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip, campaignIntroHTML } from './ui.js';
 
 export class ExpertView {
   constructor(root, init, { timer, isHost }) {
@@ -36,7 +36,7 @@ export class ExpertView {
     this.raf = requestAnimationFrame(this.frame);
     this.stopCountdown = countdownOverlay(this.root.querySelector('#countdown'), init.startsInMs, () => {
       if (!this.ended && !this.paused) sound.startMusic();
-    });
+    }, campaignIntroHTML(init));
   }
 
   render() {

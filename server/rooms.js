@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { Game } from './game.js';
 import { bombConfig, LEVELS, sanitizeFree, DEFAULT_FREE } from '../shared/levels.js';
 import { ALL_TYPES } from '../shared/modules/index.js';
+import { campaignStage, stageBrief, CAMPAIGN_STAGES, CAMPAIGN_LIVES } from '../shared/campaign.js';
 import { VERSION } from '../shared/version.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
@@ -65,7 +66,7 @@ class Room {
     this.lastResult = null;
     this.team = { games: 0, wins: 0, points: 0 };
     this.completed = new Set();
-    this.campaign = { streak: 0, best: 0 };
+    this.campaign = { run: null, best: { stage: 0, score: 0 }, runs: 0 };
     this.autoTimer = null;
     this.notes = emptyNotes();
     this.emptySince = null;
@@ -162,7 +163,7 @@ class Room {
       team: this.team,
       lastResult: this.lastResult,
       completed: [...this.completed],
-      campaign: this.campaign,
+      campaign: { run: this.campaignSummary(), best: this.campaign.best },
       records: this.manager.leaderboard.top(5),
     };
   }
@@ -199,7 +200,7 @@ class Room {
     this.gameDefuserId = this.defuserId;
     this.gamePlayerIds = connected.map((p) => p.id);
     this.game = new Game({
-      config: bombConfig(this.settings),
+      config: this.settings.mode === 'campaign' ? this.campaignConfig() : bombConfig(this.settings),
       lang: this.settings.contentLang,
       hooks: {
         toDefuser: (ev, data) => {
@@ -250,6 +251,19 @@ class Room {
       levelId: this.game.config.levelId,
       mode: this.settings.mode,
     };
+    if (this.game.config.stage) {
+      const c = this.game.config;
+      extra.campaign = {
+        seed: this.campaign.run?.seed,
+        stage: c.stage,
+        total: CAMPAIGN_STAGES,
+        lives: this.campaign.run?.lives,
+        maxLives: CAMPAIGN_LIVES,
+        modifiers: c.modifiers,
+        place: c.place,
+        featured: c.featured,
+      };
+    }
     if (role === 'expert') {
       extra.manual = this.manualFor(player.id);
       extra.notes = this.notes;
@@ -310,27 +324,91 @@ class Room {
     this.broadcast();
   }
 
-  /** Kampanya: imha edilince sonraki seviye, patlayınca aynı seviye kendiliğinden başlar */
+  // --- Kampanya: kendi bölüm sistemi (seviye listesinden bağımsız) ---
+
+  /** Yeni kampanya: rastgele tohum, 1. bölüm, tam can */
+  newCampaignRun() {
+    this.campaign.run = {
+      seed: crypto.randomInt(1, 2 ** 31),
+      stage: 1,
+      attempt: 0,
+      lives: CAMPAIGN_LIVES,
+      score: 0,
+      history: [],
+      over: false,
+      won: false,
+    };
+    this.campaign.runs++;
+    return this.campaign.run;
+  }
+
+  /** Oynanacak bölümün yapılandırması; bitmiş ya da hiç başlamamış kampanya yenisini açar */
+  campaignConfig() {
+    let run = this.campaign.run;
+    if (!run || run.over) run = this.newCampaignRun();
+    return campaignStage(run.seed, run.stage, run.attempt);
+  }
+
+  campaignSummary() {
+    const run = this.campaign.run;
+    if (!run) return null;
+    return {
+      seed: run.seed,
+      stage: run.stage,
+      total: CAMPAIGN_STAGES,
+      lives: run.lives,
+      maxLives: CAMPAIGN_LIVES,
+      score: run.score,
+      over: run.over,
+      won: run.won,
+      history: run.history,
+      next: run.over ? null : stageBrief(campaignStage(run.seed, run.stage, run.attempt)),
+    };
+  }
+
+  /** İmha edilince sonraki bölüm, patlayınca can gider ve bölüm farklı bir bombayla tekrar gelir */
   campaignStep(result) {
-    if (this.settings.mode !== 'campaign' || result.outcome === 'aborted' || !result.levelId) return {};
-    const idx = LEVELS.findIndex((l) => l.id === result.levelId);
+    const run = this.campaign.run;
+    const cfg = this.game?.config;
+    if (this.settings.mode !== 'campaign' || result.outcome === 'aborted' || !run || !cfg?.stage) return {};
     const defused = result.outcome === 'defused';
+    run.history.push({ stage: cfg.stage, outcome: result.outcome, score: result.score || 0 });
     if (defused) {
-      this.campaign.streak++;
-      this.campaign.best = Math.max(this.campaign.best, idx + 1);
-    } else this.campaign.streak = 0;
-    const complete = defused && idx === LEVELS.length - 1;
-    const campaign = { level: idx + 1, total: LEVELS.length, streak: this.campaign.streak, best: this.campaign.best, complete };
-    if (complete) return { campaign };
-    const next = defused ? LEVELS[idx + 1] : LEVELS[idx];
-    this.settings.levelId = next.id;
+      run.score += result.score || 0;
+      if (cfg.stage >= CAMPAIGN_STAGES) {
+        run.won = true;
+        run.over = true;
+      } else {
+        run.stage = cfg.stage + 1;
+        run.attempt = 0;
+      }
+    } else {
+      run.lives--;
+      run.attempt++;
+      if (run.lives <= 0) run.over = true;
+    }
+    const best = this.campaign.best;
+    const reached = defused ? cfg.stage : cfg.stage - 1;
+    if (reached > best.stage || (reached === best.stage && run.score > best.score)) {
+      this.campaign.best = { stage: reached, score: run.score };
+    }
+    const campaign = { played: cfg.stage, ...this.campaignSummary() };
+    if (run.over) return { campaign };
     const delay = this.manager.gameOptions?.autoNextMs ?? AUTO_NEXT_MS;
     this.autoTimer = setTimeout(() => {
       this.autoTimer = null;
       if (this.phase === 'result' && this.settings.mode === 'campaign') this.startGame();
     }, delay);
     this.autoTimer.unref?.();
-    return { campaign, autoNext: { levelId: next.id, level: LEVELS.indexOf(next) + 1, retry: !defused, at: Date.now() + delay, held: false } };
+    return { campaign, autoNext: { stage: run.stage, retry: !defused, at: Date.now() + delay, held: false } };
+  }
+
+  /** Oda sahibi kampanyayı sıfırlar */
+  resetCampaign() {
+    if (this.phase === 'playing') return;
+    this.clearAuto();
+    this.campaign.run = null;
+    this.broadcast();
   }
 
   /** Sonuç; otomatik başlangıca kalan süre gönderildiği anda hesaplanır */
@@ -502,6 +580,10 @@ export class RoomManager {
       const c = this.ctx(socket);
       if (c && c.player.id !== c.room.gameDefuserId) c.room.setNote(String(p.field), p.value, socket);
     });
+    socket.on(
+      'campaign:new',
+      asHost((room) => room.resetCampaign())
+    );
     socket.on(
       'campaign:hold',
       asHost((room) => room.holdCampaign())

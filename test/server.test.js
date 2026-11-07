@@ -319,74 +319,130 @@ test('uzmanlar ortak not defterini paylaşır, sonuçta modül raporu ve puan ge
   }
 });
 
-test('kampanya: imha edilince sonraki seviye, patlayınca aynı seviye kendiliğinden başlar', async () => {
+const defuserSocket = (room, clients) => clients[[...room.players.values()].findIndex((p) => p.id === room.gameDefuserId)];
+
+test('kampanya kendi bölümleriyle başlar: imha → sonraki bölüm, patlama → can gider ve bölüm farklı bombayla tekrar', async () => {
   const { clients, room, cleanup } = await setup(2, { autoNextMs: 250 });
   try {
-    clients[0].emit('room:settings', { mode: 'campaign', levelId: 'l1' });
+    clients[0].emit('room:settings', { mode: 'campaign', levelId: 'l7' }); // seviye seçimi kampanyayı etkilemez
     await wait(30);
     clients[0].emit('game:start');
-    await once(clients[0], 'game:init');
+    const init = await once(clients[0], 'game:init');
+    assert.equal(init.levelId, null, 'kampanya seviye listesini kullanmaz');
+    assert.equal(init.campaign.stage, 1);
+    assert.equal(init.campaign.lives, 3);
+    const seed = room.campaign.run.seed;
     await wait(80);
-    const defSock = () => clients[[...room.players.values()].findIndex((p) => p.id === room.gameDefuserId)];
+
     let end = once(clients[0], 'game:end', 8000);
-    await solveAll(room, defSock());
+    await solveAll(room, defuserSocket(room, clients));
     let r = await end;
     assert.equal(r.outcome, 'defused');
-    assert.equal(r.autoNext.levelId, 'l2');
+    assert.equal(r.levelId, null);
+    assert.equal(r.campaign.played, 1);
+    assert.equal(r.campaign.stage, 2);
+    assert.equal(r.campaign.lives, 3);
+    assert.ok(r.campaign.score > 0);
+    assert.equal(r.autoNext.stage, 2);
     assert.equal(r.autoNext.retry, false);
-    assert.ok(r.autoNext.inMs > 0 && r.autoNext.inMs <= 250);
-    assert.deepEqual(r.campaign, { level: 1, total: 10, streak: 1, best: 1, complete: false });
+    assert.equal(r.campaign.next.stage, 2);
+    assert.deepEqual(room.publicState().records, {}, 'kampanya seviye rekorlarına yazılmaz');
 
-    // Kendiliğinden ikinci seviye başlar
     const init2 = await once(clients[0], 'game:init', 3000);
-    assert.equal(init2.levelId, 'l2');
-    assert.equal(init2.mode, 'campaign');
+    assert.equal(init2.campaign.stage, 2);
     await wait(80);
     end = once(clients[0], 'game:end', 8000);
     while (!room.game.ended) room.game.strike(null);
     r = await end;
     assert.equal(r.outcome, 'exploded');
-    assert.equal(r.autoNext.levelId, 'l2', 'patlayınca aynı seviye tekrar denenir');
+    assert.equal(r.campaign.lives, 2);
+    assert.equal(r.campaign.stage, 2, 'patlayınca aynı bölüm');
     assert.equal(r.autoNext.retry, true);
-    assert.equal(r.campaign.streak, 0);
-    assert.equal(r.campaign.best, 1);
 
-    // Durdur: otomatik başlangıç iptal
-    await wait(40); // önceki game:end iki istemciye de ulaşsın
-    const held = once(clients[1], 'game:end');
-    clients[1].emit('campaign:hold'); // oda sahibi değil: yok sayılır
-    clients[0].emit('campaign:hold');
-    const h = await held;
-    assert.equal(h.autoNext.held, true);
-    await wait(400);
-    assert.equal(room.phase, 'result', 'durdurulunca yeni bomba gelmemeli');
-    // Oda sahibi elle devam eder
-    clients[0].emit('game:start');
-    const init3 = await once(clients[0], 'game:init');
-    assert.equal(init3.levelId, 'l2');
+    await once(clients[0], 'game:init', 3000);
+    assert.equal(room.campaign.run.seed, seed, 'aynı kampanya devam eder');
+    assert.equal(room.game.config.attempt, 1);
+    assert.equal(room.game.config.stage, 2);
   } finally {
     await cleanup();
   }
 });
 
-test('kampanya: son seviye geçilince tamamlanır ve otomatik başlangıç olmaz', async () => {
-  const { clients, room, cleanup } = await setup(2, { autoNextMs: 100 });
+test('kampanya: canlar bitince sona erer, yeni başlatma yeni bir kampanya açar', async () => {
+  const { clients, room, cleanup } = await setup(2, { autoNextMs: 60 });
   try {
-    clients[0].emit('room:settings', { mode: 'campaign', levelId: 'l10' });
+    clients[0].emit('room:settings', { mode: 'campaign' });
+    await wait(30);
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    const seed = room.campaign.run.seed;
+    let r;
+    for (let i = 0; i < 3; i++) {
+      await wait(80);
+      const end = once(clients[0], 'game:end', 8000);
+      while (!room.game.ended) room.game.strike(null);
+      r = await end;
+      if (i < 2) await once(clients[0], 'game:init', 3000);
+    }
+    assert.equal(r.campaign.lives, 0);
+    assert.equal(r.campaign.over, true);
+    assert.equal(r.campaign.won, false);
+    assert.equal(r.autoNext, undefined);
+    await wait(200);
+    assert.equal(room.phase, 'result', 'bitmiş kampanya kendiliğinden başlamaz');
+    clients[0].emit('game:start');
+    const init = await once(clients[0], 'game:init');
+    assert.equal(init.campaign.stage, 1);
+    assert.equal(init.campaign.lives, 3);
+    assert.notEqual(room.campaign.run.seed, seed, 'yeni kampanya yeni tohumla başlar');
+  } finally {
+    await cleanup();
+  }
+});
+
+test('kampanya: 12. bölüm geçilince kazanılır; durdur ve sıfırla çalışır', async () => {
+  const { clients, room, cleanup } = await setup(2, { autoNextMs: 200 });
+  try {
+    clients[0].emit('room:settings', { mode: 'campaign' });
     await wait(30);
     clients[0].emit('game:start');
     await once(clients[0], 'game:init');
     await wait(80);
-    for (const m of room.game.regularModules) {
-      m.solved = true;
-    }
-    const end = once(clients[0], 'game:end');
+    // Durdur: yalnızca oda sahibi
+    let end = once(clients[0], 'game:end', 8000);
+    await solveAll(room, defuserSocket(room, clients));
+    await end;
+    await wait(40);
+    const held = once(clients[1], 'game:end');
+    clients[1].emit('campaign:hold');
+    clients[0].emit('campaign:hold');
+    assert.equal((await held).autoNext.held, true);
+    await wait(300);
+    assert.equal(room.phase, 'result');
+
+    // Son bölüme atla ve kazan
+    room.campaign.run.stage = 12;
+    clients[0].emit('game:start');
+    const init = await once(clients[0], 'game:init');
+    assert.equal(init.campaign.stage, 12);
+    await wait(80);
+    // 12. bölümün havuzunda zamanlı basılan Ritim olabilir; bölümü doğrudan imha edilmiş say
+    end = once(clients[0], 'game:end', 8000);
+    for (const m of room.game.regularModules) m.solved = true;
     room.game.end('defused', 'solved');
     const r = await end;
-    assert.equal(r.campaign.complete, true);
+    assert.equal(r.campaign.won, true);
+    assert.equal(r.campaign.over, true);
     assert.equal(r.autoNext, undefined);
-    await wait(250);
-    assert.equal(room.phase, 'result');
+    assert.equal(room.campaign.best.stage, 12);
+
+    // Sıfırla
+    clients[1].emit('campaign:new');
+    await wait(30);
+    assert.ok(room.campaign.run);
+    clients[0].emit('campaign:new');
+    await wait(30);
+    assert.equal(room.campaign.run, null);
   } finally {
     await cleanup();
   }
