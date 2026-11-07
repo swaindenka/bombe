@@ -24,6 +24,9 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 - **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır; kilitli sayfada o bölümün kimde olduğu yazar.
 - **Dönen roller:** Her bombadan sonra imhacı sıradaki oyuncu olur.
 - **Ortak not defteri:** Uzmanlar seri numarası, pil, gösterge ve port bilgisini anlık paylaşır. Seri numarası girilince son rakam (tek/çift), sesli harf ve rakam toplamı otomatik hesaplanır.
+- **Uzman bildirimleri:** Hata ve çözümler hangi modülde olduğuyla birlikte bildirilir ("✕ HATA · Kablolar"). Sürekli ilgi isteyen bir modül devreye girince uzmanlar haber alır ve o modülün kılavuz sayfası içindekilerde yanıp söner.
+- **Ritim sayacın yanında:** Ritim modülü her zaman sayacın olduğu ön yüzde, mümkünse sayacın hemen yanında ya da altında çıkar.
+- **Oyuncu çıkarma ve ilk oyun ipuçları:** Oda sahibi lobide oyuncu çıkarabilir. Yeni oyunculara rolleri için bir kerelik kısa ipucu kartı gösterilir.
 - **Kılavuzda arama:** `/` ile arama kutusuna geçilir (ör. "hdmi" yazınca portlarla ilgili sayfalar kalır). Okunan sayfa içindekilerde vurgulanır.
 - **Duraklatma:** Oda sahibi oyunu duraklatabilir; sayaç, sürekli ilgi isteyen modüller ve olaylar donar.
 - **Tur sonu raporu:** Puan, hangi modülün kaçıncı saniyede çözüldüğü ve hangi modülde kaç hata yapıldığı.

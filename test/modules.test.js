@@ -257,3 +257,18 @@ test('kampanya bölümleri: kurallara uyar, tohuma göre değişir, zorluk artar
   assert.equal(signatures.size, N, 'her kampanya farklı olmalı');
   assert.ok(avg[1] < avg[6] && avg[6] < avg[12], `zorluk artmalı: ${avg.slice(1).map((x) => x.toFixed(1))}`);
 });
+
+test('ritim modülü her zaman sayacın olduğu ön yüzde, mümkünse sayaca bitişik', async () => {
+  const { Game, FRONT_ONLY } = await import('../server/game.js');
+  assert.ok(FRONT_ONLY.includes('rhythm'));
+  for (let seed = 1; seed <= 300; seed++) {
+    const n = 1 + (seed % 3);
+    const g = new Game({ config: { regular: 9, needy: 2, time: 300, strikes: 3, pool: ['rhythm', 'wires', 'maze', 'cipher'], needyPool: ['radio'], introduces: Array(n).fill('rhythm') }, seed });
+    const rhythms = g.modules.filter((m) => m.type === 'rhythm');
+    assert.ok(rhythms.length >= 1);
+    for (const m of rhythms.slice(0, 5)) assert.ok(m.slot < 6, `ritim arka yüzde (seed ${seed}, yuva ${m.slot})`);
+    if (rhythms.length) assert.ok([0, 2, 4].includes(rhythms[0].slot), 'ilk ritim sayaca bitişik olmalı');
+    assert.equal(new Set(g.modules.map((m) => m.slot)).size, g.modules.length, 'yuvalar çakışmamalı');
+    assert.ok(g.modules.every((m) => m.slot !== 1 && m.slot >= 0 && m.slot < 12));
+  }
+});

@@ -466,3 +466,53 @@ test('modül adları seçeneği imhacıya iletilir', async () => {
     await cleanup();
   }
 });
+
+test('oda sahibi lobide oyuncu çıkarabilir; oyun sırasında ve kendini çıkaramaz', async () => {
+  const { clients, joins, room, cleanup } = await setup(3);
+  try {
+    clients[1].emit('room:kick', { playerId: joins[2].playerId }); // oda sahibi değil
+    clients[0].emit('room:kick', { playerId: joins[0].playerId }); // kendini
+    await wait(40);
+    assert.equal(room.players.size, 3);
+    const kicked = once(clients[2], 'room:kicked');
+    clients[0].emit('room:kick', { playerId: joins[2].playerId });
+    await kicked;
+    await wait(30);
+    assert.equal(room.players.size, 2);
+    assert.ok(!room.players.has(joins[2].playerId));
+    // Oyun sırasında çıkarma yok
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    clients[0].emit('room:kick', { playerId: joins[1].playerId });
+    await wait(40);
+    assert.equal(room.players.size, 2);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('hata, çözüm ve sürekli ilgi olayları modül türünü taşır', async () => {
+  const { clients, room, cleanup } = await setup(2);
+  try {
+    clients[0].emit('room:settings', { mode: 'free', free: { regular: 2, needy: 1, needyPool: ['radio'], pool: ['wires'], events: false } });
+    await wait(30);
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    await wait(80);
+    const g = room.game;
+    const needyEv = once(clients[1], 'game:needy');
+    g.modules.find((m) => m.needy).nextAt = Date.now();
+    const n = await needyEv;
+    assert.equal(n.type, 'radio');
+    assert.ok(n.activeMs > 0);
+    const w = g.modules.find((m) => !m.needy);
+    const strikeEv = once(clients[1], 'game:strike');
+    g.handleAction(w.id, { cut: w.state.wires.findIndex((_, i) => i !== w.state.solution) });
+    assert.equal((await strikeEv).type, 'wires');
+    const solvedEv = once(clients[1], 'game:solved');
+    g.handleAction(w.id, { cut: w.state.solution });
+    assert.equal((await solvedEv).type, 'wires');
+  } finally {
+    await cleanup();
+  }
+});
