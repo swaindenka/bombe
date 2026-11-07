@@ -1,10 +1,11 @@
-// Uzman ekranı: kılavuz + küçük durum göstergesi (hatalar, çözülen modüller, isteğe bağlı sayaç).
+// Uzman ekranı: kılavuz + ortak not defteri + küçük durum göstergesi.
 
 import { t } from './i18n.js';
 import { esc, formatTime, toast } from './dom.js';
 import { sound } from './audio.js';
 import { manualHTML, bindManual } from './manual.js';
-import { barControls, handleBarControl, countdownOverlay } from './ui.js';
+import { notesHTML, NotesPanel } from './notes.js';
+import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton } from './ui.js';
 
 export class ExpertView {
   constructor(root, init, { timer, isHost }) {
@@ -19,23 +20,29 @@ export class ExpertView {
     this.total = init.timer.total;
     this.timeouts = [];
     this.ended = !!init.ended;
+    this.paused = !!init.timer.paused;
     this.render();
-    bindManual(this.root);
+    this.disposeManual = bindManual(this.root.querySelector('#manualWrap'));
+    this.notes = new NotesPanel(this.root.querySelector('#notes'), init.notes || {});
     this.onClick = (e) => {
       const b = e.target.closest('[data-ctl]');
-      if (b) handleBarControl(b.dataset.ctl, b);
+      if (!b) return;
+      if (b.dataset.ctl === 'notes') this.root.querySelector('.game-expert').classList.toggle('notes-open');
+      else handleBarControl(b.dataset.ctl, b);
     };
     this.root.addEventListener('click', this.onClick);
+    if (this.paused) this.onPaused({ paused: true }, true);
     this.frame = this.frame.bind(this);
     this.raf = requestAnimationFrame(this.frame);
     this.stopCountdown = countdownOverlay(this.root.querySelector('#countdown'), init.startsInMs, () => {
-      if (!this.ended) sound.startMusic();
+      if (!this.ended && !this.paused) sound.startMusic();
     });
   }
 
   render() {
+    const wide = window.innerWidth >= 1180;
     this.root.innerHTML = `
-      <div class="game game-expert">
+      <div class="game game-expert ${wide ? 'notes-open' : ''}">
         <header class="game-bar">
           <div class="bar-left"><span class="role-badge r-expert">📖 ${t('youAreExpert')}</span><span class="bar-note">${esc(t('defuserIs', { name: this.init.defuserName }))}</span></div>
           <div class="bar-mid">
@@ -43,10 +50,14 @@ export class ExpertView {
             <span class="hud hud-solved" id="hudSolved"></span>
             <span class="hud hud-timer lcd ${this.showTimer ? '' : 'hidden-timer'}" id="hudTimer" title="${this.showTimer ? '' : t('timerHidden')}">${this.showTimer ? '' : '⏱ ??:??'}</span>
           </div>
-          <div class="bar-right">${barControls(this.isHost)}</div>
+          <div class="bar-right"><button class="btn btn-small" data-ctl="notes">📝 ${t('notesTitle')}</button>${barControls(this.isHost, { paused: this.paused })}</div>
         </header>
-        <div class="manual-wrap" id="manualWrap">${manualHTML({ contentLang: this.init.lang, manual: this.init.manual })}</div>
+        <div class="expert-body">
+          <div class="manual-wrap" id="manualWrap">${manualHTML({ contentLang: this.init.lang, manual: this.init.manual })}</div>
+          ${notesHTML(this.init.notes)}
+        </div>
         <div class="fx-flash" id="fxFlash"></div>
+        ${pauseOverlayHTML()}
         <div class="countdown" id="countdown"></div>
       </div>`;
     this.updateHud();
@@ -60,7 +71,7 @@ export class ExpertView {
       s.innerHTML = html;
     }
     const v = this.root.querySelector('#hudSolved');
-    if (v) v.textContent = t('solvedCount', { n: this.solved, total: this.total });
+    if (v) v.innerHTML = `<span class="solved-bar"><i style="width:${this.total ? (this.solved / this.total) * 100 : 0}%"></i></span>${t('solvedCount', { n: this.solved, total: this.total })}`;
   }
 
   frame() {
@@ -72,6 +83,9 @@ export class ExpertView {
         el.classList.toggle('low', rem < 60000);
       }
       sound.setIntensity(1 - rem / 150000);
+    } else {
+      // Süre bilinmiyor: gerilim çözülen modül oranıyla artar
+      sound.setIntensity(this.total ? 0.25 + (this.solved / this.total) * 0.5 : 0.3);
     }
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -85,6 +99,7 @@ export class ExpertView {
 
   onStrike(s) {
     this.strikes = s.strikes;
+    sound.setStrikes(s.strikes);
     this.updateHud();
     sound.strike();
     toast('✕ ' + t('strikeToast'), 'danger', 1500);
@@ -98,16 +113,38 @@ export class ExpertView {
     sound.solve();
   }
 
+  onNotes(n) {
+    this.notes?.apply(n);
+  }
+
+  onPaused({ paused }, silent = false) {
+    this.paused = paused;
+    this.root.querySelector('#pauseOverlay')?.classList.toggle('on', paused);
+    setPauseButton(this.root, paused);
+    if (silent) return;
+    sound.pause(paused);
+    if (paused) sound.stopMusic();
+    else if (!this.ended) sound.startMusic();
+  }
+
   onEvent(ev) {
     toast('⚡ ' + t('ev_' + ev.type), 'warn');
-    if (ev.type === 'glitch') this.pulse('#manualWrap', 'glitch', ev.duration);
+    if (ev.type === 'glitch') {
+      sound.glitch(ev.duration);
+      this.pulse('#manualWrap', 'glitch', ev.duration);
+    }
   }
 
   onEnd(result) {
     this.ended = true;
-    sound.stopMusic();
-    if (result.outcome === 'exploded') sound.explode();
-    else if (result.outcome === 'defused') sound.win();
+    this.root.querySelector('#pauseOverlay')?.classList.remove('on');
+    if (result.outcome === 'exploded') {
+      sound.stopMusic(true);
+      sound.explode();
+    } else {
+      sound.stopMusic();
+      if (result.outcome === 'defused') sound.win();
+    }
   }
 
   pulse(sel, cls, ms) {
@@ -123,6 +160,8 @@ export class ExpertView {
     cancelAnimationFrame(this.raf);
     this.stopCountdown?.();
     this.timeouts.forEach(clearTimeout);
+    this.disposeManual?.();
+    this.notes?.destroy();
     this.root.removeEventListener('click', this.onClick);
     sound.stopMusic();
   }

@@ -3,6 +3,9 @@
 import { shortestPath } from '../shared/mazes.js';
 import { stroopAnswer } from '../shared/modules/stroop.js';
 import { coolantAnswer } from '../shared/modules/coolant.js';
+import { arrowAnswer } from '../shared/modules/arrows.js';
+import { patchTarget } from '../shared/modules/patch.js';
+import { gaugeAnswer } from '../shared/modules/gauges.js';
 
 export function nextAction(type, s, e) {
   switch (type) {
@@ -26,6 +29,22 @@ export function nextAction(type, s, e) {
       return { press: s.tiles.findIndex((t, k) => t === s.target && !s.pressed.includes(k)) };
     case 'rhythm':
       return { press: true };
+    case 'arrows':
+      return { press: arrowAnswer(s.stage, s.dir, s.color, e) };
+    case 'patch': {
+      const p = s.plugs.findIndex((c, i) => s.links[i] === null || s.sockets[s.links[i]] !== patchTarget(c, e));
+      return p >= 0 ? { connect: [p, s.sockets.indexOf(patchTarget(s.plugs[p], e))] } : { test: true };
+    }
+    case 'gauges':
+      return { press: gaugeAnswer(s.values, e) };
+    case 'cipher':
+      return { press: s.options.indexOf(s.word) };
+    case 'homophones':
+      return { press: s.current.buttons.indexOf(s.current.target) };
+    case 'radio':
+      return s.channel === s.answer ? { send: true } : { tune: 1 };
+    case 'pressure':
+      return { vent: true };
     case 'coolant':
       return { press: coolantAnswer(s.code) };
     case 'passphrase':

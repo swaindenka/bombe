@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { io as ioc } from 'socket.io-client';
 import { createServer } from '../server/index.js';
 import { nextAction } from './solver.js';
+import { ALL_TYPES } from '../shared/modules/index.js';
 
 const once = (socket, ev, ms = 4000) =>
   new Promise((resolve, reject) => {
@@ -88,7 +89,7 @@ test('oda kurulur, katılınır, kılavuz bölünür ve bomba imha edilir', asyn
     // İki uzmanın sayfaları çakışmaz ve birlikte her şeyi kapsar
     const all = [...e1.manual.mine, ...e2.manual.mine];
     assert.equal(new Set(all).size, all.length);
-    assert.equal(all.length, 10);
+    assert.equal(all.length, ALL_TYPES.length);
     // İmhacıya giden görünüm çözüm sızdırmaz
     assert.ok(!JSON.stringify(d.modules).includes('solution'));
 
@@ -244,6 +245,75 @@ test('seviye modunda imha edilen bomba rekor tablosuna girer', async () => {
     const top = room.publicState().records.l1;
     assert.equal(top.length, 1);
     assert.deepEqual(top[0].team, ['Ayşe', 'Burak']);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('oda sahibi duraklatınca sayaç ve hamleler durur', async () => {
+  const { clients, room, cleanup } = await setup(2);
+  try {
+    clients[0].emit('room:settings', { mode: 'free', free: { regular: 2, needy: 1, needyPool: ['radio'], pool: ['wires'], events: false } });
+    await wait(30);
+    clients[0].emit('game:start');
+    await once(clients[0], 'game:init');
+    await wait(80);
+    const g = room.game;
+    const paused = once(clients[1], 'game:paused');
+    clients[1].emit('game:pause', { paused: true }); // oda sahibi değil: yok sayılır
+    await wait(30);
+    assert.equal(g.paused, false);
+    clients[0].emit('game:pause', { paused: true });
+    assert.deepEqual(await paused, { paused: true });
+    const before = g.remainingMs();
+    const needy = g.modules.find((m) => m.needy);
+    const nextAt = needy.nextAt;
+    await wait(150);
+    assert.equal(g.remainingMs(), before);
+    // Duraklatılmışken hamle işlenmez
+    const w = g.modules.find((m) => !m.needy);
+    clients[0].emit('game:action', { moduleId: w.id, action: { cut: w.state.solution } });
+    await wait(30);
+    assert.equal(w.solved, false);
+    clients[0].emit('game:pause', { paused: false });
+    await wait(30);
+    assert.equal(g.paused, false);
+    assert.ok(needy.nextAt >= nextAt + 150, 'sürekli ilgi zamanlaması duraklama kadar ötelenmeli');
+    assert.ok(g.remainingMs() < before);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('uzmanlar ortak not defterini paylaşır, sonuçta modül raporu ve puan gelir', async () => {
+  const { clients, joins, room, cleanup } = await setup(3);
+  try {
+    clients[0].emit('room:settings', { mode: 'free', free: { regular: 2, needy: 0, pool: ['arrows', 'patch'], events: false } });
+    clients[0].emit('room:defuser', { playerId: joins[1].playerId });
+    await wait(30);
+    clients[0].emit('game:start');
+    const init = await once(clients[2], 'game:init');
+    assert.equal(init.notes.serial, '');
+    const upd = once(clients[2], 'notes:update');
+    clients[0].emit('notes:set', { field: 'serial', value: 'AB12C7-ve-cok-uzun-bir-deger' });
+    const u = await upd;
+    assert.equal(u.field, 'serial');
+    assert.equal(u.value.length, 12);
+    clients[1].emit('notes:set', { field: 'text', value: 'imhacı yazamaz' });
+    clients[0].emit('notes:set', { field: 'hack', value: 'x' });
+    await wait(40);
+    assert.equal(room.notes.text, '');
+    assert.equal(room.notes.hack, undefined);
+
+    await wait(60);
+    const end = once(clients[0], 'game:end', 8000);
+    await solveAll(room, clients[1]);
+    const r = await end;
+    assert.equal(r.outcome, 'defused');
+    assert.equal(r.modules.length, 2);
+    assert.ok(r.modules.every((m) => m.solvedAtMs >= 0 && m.strikes === 0));
+    assert.ok(r.score > 1000);
+    assert.equal(room.team.points, r.score);
   } finally {
     await cleanup();
   }

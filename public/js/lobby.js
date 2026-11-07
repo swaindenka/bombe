@@ -32,13 +32,16 @@ export function lobbyHTML(room, me) {
     .join('');
 
   const best = (id) => room.records?.[id]?.[0];
+  const done = new Set(room.completed || []);
   const levels = LEVELS.map((lv, i) => {
     const b = best(lv.id);
+    const intro = lv.introduces.map((ty) => `<span class="new-chip">${esc(moduleName(ty))}</span>`).join('');
     return `
-      <button class="level ${s.levelId === lv.id ? 'sel' : ''}" data-level="${lv.id}" ${dis}>
-        <span class="lv-no">${i + 1}</span>
+      <button class="level ${s.levelId === lv.id ? 'sel' : ''} ${done.has(lv.id) ? 'done' : ''}" data-level="${lv.id}" ${dis}>
+        <span class="lv-no">${done.has(lv.id) ? '✓' : i + 1}</span>
         <span class="lv-name">${esc(lv.name[L])}</span>
         <span class="lv-meta">${lv.regular} ${t('modules')} · ${formatDuration(lv.time * 1000)} · ✕${lv.strikes}${lv.needy ? ` · ⏱${lv.needy}` : ''}${lv.events ? ' · ⚡' : ''}</span>
+        ${intro ? `<span class="lv-new"><b>${t('newModules')}</b> ${intro}</span>` : ''}
         <span class="lv-best">${b ? `🏆 ${formatDuration(b.timeMs)}` : '&nbsp;'}</span>
       </button>`;
   }).join('');
@@ -103,6 +106,7 @@ export function lobbyHTML(room, me) {
         <div class="room-chip"><span>${t('room')}</span><b id="roomCode">${esc(room.code)}</b><button class="btn btn-small" data-ui="copy">🔗 ${t('copyLink')}</button></div>
         <div class="topbar-right">
           <button class="btn btn-small btn-ghost" data-ui="manual">📖 ${t('manual')}</button>
+          <button class="icon-btn" data-ui="settings" title="${t('settingsTitle')}" aria-label="${t('settingsTitle')}">⚙</button>
           ${langSwitch()}
           <button class="btn btn-small btn-ghost" data-ui="leave">${t('leave')}</button>
         </div>
@@ -140,7 +144,7 @@ export function lobbyHTML(room, me) {
 
         <section class="card card-score">
           <h2>${t('scoreboard')}</h2>
-          <div class="team-line">${t('team')}: <b>${room.team.wins}</b> ${t('wins').toLocaleLowerCase(L)} / ${room.team.games} ${t('games').toLocaleLowerCase(L)}</div>
+          <div class="team-line">${t('team')}: <b>${room.team.wins}</b> ${t('wins').toLocaleLowerCase(L)} / ${room.team.games} ${t('games').toLocaleLowerCase(L)} · <b>${room.team.points || 0}</b> ${t('points')}</div>
           <table class="stats"><thead><tr><th>${t('roomStats')}</th><th>${t('wins')}</th><th>${t('losses')}</th><th>${t('fastest')}</th></tr></thead><tbody>${statsRows}</tbody></table>
           <h3>🏆 ${t('records')} · ${esc(selLevel.name[L])}</h3>
           ${records}

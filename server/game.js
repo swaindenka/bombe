@@ -4,6 +4,7 @@
 import { MODULES, NEEDY_TIMING } from '../shared/modules/index.js';
 import { createRng, randomSeed } from '../shared/rng.js';
 import { generateEdgework } from '../shared/edgework.js';
+import { scoreFor } from '../shared/levels.js';
 
 export const EVENT_TYPES = ['blackout', 'shake', 'alarm', 'glitch'];
 export const EVENT_DURATION = { blackout: 9000, shake: 2600, alarm: 9000, glitch: 7000 };
@@ -46,6 +47,8 @@ export class Game {
     this.nextEventAt = Infinity;
     this.interval = null;
     this.startTimeout = null;
+    this.paused = false;
+    this.pausedAt = 0;
   }
 
   buildModules() {
@@ -55,9 +58,14 @@ export class Game {
       while (out.length < n && pool.length) out.push(...rng.shuffle(pool));
       return out.slice(0, n);
     };
+    // Seviyenin yeni tanıttığı modüller bombada mutlaka bulunsun
+    const pick = (pool, n) => {
+      const intro = rng.shuffle((config.introduces || []).filter((t) => pool.includes(t))).slice(0, n);
+      return [...intro, ...fill(pool, n - intro.length)];
+    };
     const types = [
-      ...fill(config.pool, config.regular).map((t) => ({ type: t, needy: false })),
-      ...fill(config.needyPool || [], config.needy).map((t) => ({ type: t, needy: true })),
+      ...pick(config.pool, config.regular).map((t) => ({ type: t, needy: false })),
+      ...pick(config.needyPool || [], config.needy).map((t) => ({ type: t, needy: true })),
     ];
     const slots = rng.shuffle([...Array(SLOT_COUNT).keys()].filter((s) => s !== TIMER_SLOT));
     return types.map((t, i) => ({
@@ -67,6 +75,8 @@ export class Game {
       slot: slots[i],
       state: MODULES[t.type].generate(rng, this.edgework, this.lang),
       solved: false,
+      solvedAt: null,
+      strikes: 0,
       nextAt: 0,
       activeUntil: 0,
     }));
@@ -84,7 +94,7 @@ export class Game {
 
   advance() {
     const t = Date.now();
-    if (this.started && !this.ended && this.lastTick !== null) this.elapsed += (t - this.lastTick) * this.rate;
+    if (this.started && !this.ended && !this.paused && this.lastTick !== null) this.elapsed += (t - this.lastTick) * this.rate;
     this.lastTick = t;
   }
 
@@ -96,7 +106,8 @@ export class Game {
   timerPayload() {
     return {
       remainingMs: this.remainingMs(),
-      rate: this.started && !this.ended ? this.rate : 0,
+      rate: this.started && !this.ended && !this.paused ? this.rate : 0,
+      paused: this.paused,
       strikes: this.strikes,
       maxStrikes: this.maxStrikes,
       solved: this.solvedCount,
@@ -129,8 +140,34 @@ export class Game {
     this.interval = setInterval(() => this.tick(), TICK_MS);
   }
 
+  activeFor(m) {
+    return MODULES[m.type].activeFor || NEEDY_TIMING.activeFor;
+  }
+
+  /** Oda sahibi duraklatır: sayaç, sürekli ilgi modülleri ve olaylar donar */
+  setPaused(paused) {
+    if (!this.started || this.ended || this.paused === paused) return;
+    this.advance();
+    if (paused) {
+      this.paused = true;
+      this.pausedAt = Date.now();
+    } else {
+      const d = Date.now() - this.pausedAt;
+      for (const m of this.modules) {
+        m.nextAt += d;
+        m.activeUntil += d;
+      }
+      this.nextEventAt += d;
+      this.paused = false;
+      this.lastTick = Date.now();
+      for (const m of this.modules) if (m.needy && m.state.active) this.emitModule(m);
+    }
+    this.hooks.toAll?.('game:paused', { paused: this.paused });
+    this.syncTimer();
+  }
+
   tick() {
-    if (this.ended || !this.started) return;
+    if (this.ended || !this.started || this.paused) return;
     const now = Date.now();
     if (this.remainingMs() <= 0) {
       this.end('exploded', 'time');
@@ -140,7 +177,7 @@ export class Game {
       if (!m.needy) continue;
       if (!m.state.active && now >= m.nextAt) {
         MODULES[m.type].activate(m.state, this.rng, this.edgework, this.lang);
-        m.activeUntil = now + NEEDY_TIMING.activeFor;
+        m.activeUntil = now + this.activeFor(m);
         this.emitModule(m);
       } else if (m.state.active && now >= m.activeUntil) {
         this.deactivateNeedy(m);
@@ -168,6 +205,7 @@ export class Game {
   strike(m) {
     this.advance();
     this.strikes++;
+    if (m) m.strikes++;
     this.rate = 1 + STRIKE_SPEEDUP * this.strikes;
     this.hooks.toAll?.('game:strike', { moduleId: m ? m.id : null, strikes: this.strikes, maxStrikes: this.maxStrikes });
     if (this.strikes >= this.maxStrikes) {
@@ -179,7 +217,7 @@ export class Game {
 
   /** İmhacının bir modüle yaptığı hareket */
   handleAction(moduleId, action, displayedRemainingMs) {
-    if (this.ended || !this.started) return;
+    if (this.ended || !this.started || this.paused) return;
     const m = this.modules.find((x) => x.id === moduleId);
     if (!m || m.solved || !action || typeof action !== 'object') return;
     const def = MODULES[m.type];
@@ -192,6 +230,7 @@ export class Game {
         rng: this.rng,
         lang: this.lang,
         displayedRemainingMs: shown,
+        needyProgress: m.needy && m.state.active ? 1 - Math.max(0, m.activeUntil - Date.now()) / this.activeFor(m) : 0,
       }) || {};
 
     if (m.needy) {
@@ -200,7 +239,10 @@ export class Game {
       if (res.strike) this.strike(m);
       return;
     }
-    if (res.solved) m.solved = true;
+    if (res.solved) {
+      m.solved = true;
+      m.solvedAt = Date.now() - this.startedAt;
+    }
     if (res.changed || res.solved) this.emitModule(m);
     if (res.strike) {
       this.strike(m);
@@ -228,7 +270,9 @@ export class Game {
       solved: this.solvedCount,
       total: this.regularModules.length,
       levelId: this.config.levelId,
+      modules: this.modules.map((m) => ({ type: m.type, needy: m.needy, solvedAtMs: m.solvedAt, strikes: m.strikes })),
     };
+    this.result.score = scoreFor(this.result);
     this.hooks.toAll?.('game:timer', this.timerPayload());
     this.hooks.onEnd?.(this.result);
   }
@@ -242,7 +286,7 @@ export class Game {
   // --- Görünümler ---
 
   moduleView(m) {
-    const now = Date.now();
+    const now = this.paused ? this.pausedAt : Date.now();
     return {
       id: m.id,
       type: m.type,

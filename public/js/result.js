@@ -1,5 +1,27 @@
-import { t } from './i18n.js';
+import { t, moduleName } from './i18n.js';
 import { esc, formatDuration } from './dom.js';
+
+function reportHTML(r) {
+  const mods = (r.modules || []).filter((m) => !m.needy);
+  const needy = (r.modules || []).filter((m) => m.needy);
+  if (!mods.length) return '';
+  const rows = mods
+    .slice()
+    .sort((a, b) => (a.solvedAtMs ?? Infinity) - (b.solvedAtMs ?? Infinity))
+    .map(
+      (m) => `
+      <li class="${m.solvedAtMs !== null ? 'ok' : 'no'}">
+        <span class="rp-name">${m.solvedAtMs !== null ? '✓' : '✕'} ${esc(moduleName(m.type))}</span>
+        <span class="rp-strikes">${m.strikes ? '✕'.repeat(Math.min(m.strikes, 5)) : ''}</span>
+        <span class="rp-time">${m.solvedAtMs !== null ? formatDuration(m.solvedAtMs) : t('notSolved')}</span>
+      </li>`
+    )
+    .join('');
+  const needyLine = needy.length
+    ? `<p class="small muted">⏱ ${needy.map((m) => `${esc(moduleName(m.type))}${m.strikes ? ` (✕${m.strikes})` : ''}`).join(' · ')}</p>`
+    : '';
+  return `<details class="report" open><summary>${t('report')}</summary><ul>${rows}</ul>${needyLine}</details>`;
+}
 
 export function resultHTML(r, room, me) {
   const isHost = room?.hostId === me;
@@ -11,6 +33,7 @@ export function resultHTML(r, room, me) {
         <div class="result-icon">${icon}</div>
         <h1>${t(r.outcome)}</h1>
         <p class="result-reason">${t('reason_' + r.reason)}</p>
+        ${r.outcome !== 'aborted' ? `<div class="result-score"><small>${t('score')}</small><b>${r.score ?? 0}</b></div>` : ''}
         <div class="result-stats">
           <div><small>${t('timeUsed')}</small><b>${formatDuration(r.timeUsedMs)}</b></div>
           <div><small>${t('timeLeft')}</small><b>${formatDuration(r.remainingMs)}</b></div>
@@ -18,6 +41,7 @@ export function resultHTML(r, room, me) {
           <div><small>${t('strikes')}</small><b>${r.strikes}/${r.maxStrikes}</b></div>
         </div>
         ${r.rank ? `<p class="result-record">🏆 ${t('newRecord', { rank: r.rank })}</p>` : ''}
+        ${reportHTML(r)}
         <p class="result-team">💣 ${esc(r.defuserName)} · ${esc((r.team || []).join(', '))}</p>
         ${next && r.outcome !== 'aborted' ? `<p class="muted small">${t('nextDefuser')}: <b>${esc(next.name)}</b></p>` : ''}
         <div class="result-actions">

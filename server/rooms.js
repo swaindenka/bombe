@@ -11,6 +11,8 @@ const ROOM_TTL_MS = 15 * 60 * 1000;
 const HOST_GRACE_MS = 20000;
 const NAME_MAX = 20;
 const LANGS = ['tr', 'en'];
+const NOTE_FIELDS = { serial: 12, batteries: 4, lit: 40, unlit: 40, ports: 60, text: 1500 };
+const emptyNotes = () => Object.fromEntries(Object.keys(NOTE_FIELDS).map((k) => [k, '']));
 
 function defaultSettings(lang) {
   return {
@@ -57,7 +59,9 @@ class Room {
     this.gamePlayerIds = [];
     this.manual = null;
     this.lastResult = null;
-    this.team = { games: 0, wins: 0 };
+    this.team = { games: 0, wins: 0, points: 0 };
+    this.completed = new Set();
+    this.notes = emptyNotes();
     this.emptySince = null;
     this.hostTimer = null;
   }
@@ -150,6 +154,7 @@ class Room {
       players: [...this.players.values()].map((p) => ({ id: p.id, name: p.name, connected: p.connected, stats: p.stats })),
       team: this.team,
       lastResult: this.lastResult,
+      completed: [...this.completed],
       records: this.manager.leaderboard.top(5),
     };
   }
@@ -198,6 +203,7 @@ class Room {
       ...(this.manager.gameOptions || {}),
     });
     this.manual = this.assignManual();
+    this.notes = emptyNotes();
     this.phase = 'playing';
     this.lastResult = null;
     this.broadcast();
@@ -233,8 +239,19 @@ class Room {
       expertsSeeTimer: this.settings.expertsSeeTimer,
       levelId: this.game.config.levelId,
     };
-    if (role === 'expert') extra.manual = this.manualFor(player.id);
+    if (role === 'expert') {
+      extra.manual = this.manualFor(player.id);
+      extra.notes = this.notes;
+    }
     this.io.to(player.socketId).emit('game:init', this.game.initPayload(role, extra));
+  }
+
+  setNote(field, value, fromSocket) {
+    if (this.phase !== 'playing' || !(field in NOTE_FIELDS)) return;
+    const v = String(value ?? '').slice(0, NOTE_FIELDS[field]);
+    if (this.notes[field] === v) return;
+    this.notes[field] = v;
+    fromSocket.to(this.channel).emit('notes:update', { field, value: v });
   }
 
   abortGame() {
@@ -247,6 +264,7 @@ class Room {
     let rank = null;
     if (result.outcome !== 'aborted') {
       this.team.games++;
+      this.team.points += result.score || 0;
       if (defuser) {
         defuser.stats.games++;
         if (result.outcome === 'defused') {
@@ -257,6 +275,7 @@ class Room {
       if (result.outcome === 'defused') {
         this.team.wins++;
         if (this.settings.mode === 'level' && result.levelId) {
+          this.completed.add(result.levelId);
           rank = this.manager.leaderboard.record(result.levelId, {
             team: names,
             defuser: defuser?.name || '?',
@@ -419,6 +438,14 @@ export class RoomManager {
       'game:start',
       asHost((room) => room.startGame())
     );
+    socket.on(
+      'game:pause',
+      asHost((room, p) => room.phase === 'playing' && room.game?.setPaused(!!(p && p.paused)))
+    );
+    socket.on('notes:set', (p = {}) => {
+      const c = this.ctx(socket);
+      if (c && c.player.id !== c.room.gameDefuserId) c.room.setNote(String(p.field), p.value, socket);
+    });
     socket.on(
       'game:abort',
       asHost((room) => room.abortGame())

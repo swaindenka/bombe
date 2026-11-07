@@ -9,13 +9,19 @@ import { resultHTML } from './result.js';
 import { manualHTML, bindManual } from './manual.js';
 import { DefuserView } from './bomb.js';
 import { ExpertView } from './expert.js';
+import { applyPrefs } from './prefs.js';
+import { settingsHTML, bindSettings } from './ui.js';
+
+applyPrefs();
 
 const app = document.getElementById('app');
-app.innerHTML = `<div id="banner" class="banner"></div><div id="screen" class="screen"></div><div id="resultLayer"></div><div id="manualLayer"></div>`;
+app.innerHTML = `<div id="banner" class="banner"></div><div id="screen" class="screen"></div><div id="resultLayer"></div><div id="manualLayer"></div><div id="settingsLayer"></div>`;
 const screen = document.getElementById('screen');
 const resultLayer = document.getElementById('resultLayer');
 const manualLayer = document.getElementById('manualLayer');
 const banner = document.getElementById('banner');
+const settingsLayer = document.getElementById('settingsLayer');
+let disposeModalManual = null;
 
 const state = {
   room: null,
@@ -36,10 +42,11 @@ const session = () => storage.get('bombe.session', null, true);
 
 function showHome() {
   state.screen = 'home';
+  sound.stopAmbient();
   const name = storage.get('bombe.name', '');
   screen.innerHTML = `
     <div class="home">
-      <div class="home-top">${langSwitch()}</div>
+      <div class="home-top"><button class="icon-btn" data-ui="settings" aria-label="${t('settingsTitle')}">⚙</button>${langSwitch()}</div>
       <div class="hero">
         <div class="logo"><span class="logo-bomb">●</span>BOMBE</div>
         <p class="tagline">${t('tagline')}</p>
@@ -73,6 +80,7 @@ function showHome() {
 
 function showLobby() {
   state.screen = 'lobby';
+  sound.startAmbient();
   const scroll = screen.querySelector('.lobby')?.scrollTop ?? 0;
   const winScroll = window.scrollY;
   screen.innerHTML = lobbyHTML(state.room, state.me);
@@ -106,9 +114,13 @@ function openManual() {
       <div class="modal-body">${manualHTML({ contentLang })}</div>
     </div>`;
   document.body.classList.add('modal-open');
+  disposeModalManual?.();
+  disposeModalManual = bindManual(manualLayer.querySelector('.modal-body'));
 }
 
 function closeManual() {
+  disposeModalManual?.();
+  disposeModalManual = null;
   manualLayer.innerHTML = '';
   document.body.classList.remove('modal-open');
 }
@@ -143,7 +155,12 @@ function route() {
   }
 }
 
+function toggleSettings(open = !settingsLayer.innerHTML) {
+  settingsLayer.innerHTML = open ? `<div class="settings-backdrop" data-ui="closeSettings"></div>${settingsHTML()}` : '';
+}
+
 function mountGame(init) {
+  sound.stopAmbient();
   destroyGame();
   hideResult();
   closeManual();
@@ -228,7 +245,15 @@ function copyLink() {
 
 // --- Genel tıklamalar ---
 
-document.addEventListener('pointerdown', () => sound.unlock(), { capture: true });
+document.addEventListener(
+  'pointerdown',
+  () => {
+    const first = !sound.ready;
+    sound.unlock();
+    if (first && state.screen === 'lobby') setTimeout(() => sound.startAmbient(), 100);
+  },
+  { capture: true }
+);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-ui]');
@@ -240,6 +265,8 @@ document.addEventListener('click', (e) => {
   else if (ui === 'leave') leaveRoom();
   else if (ui === 'manual') openManual();
   else if (ui === 'closeManual') closeManual();
+  else if (ui === 'settings') toggleSettings();
+  else if (ui === 'closeSettings' && (e.target === el || el.tagName === 'BUTTON')) toggleSettings(false);
   else if (ui === 'start' || ui === 'again') socket.emit('game:start');
   else if (ui === 'lobby') socket.emit('game:lobby');
   else if (ui === 'lang') {
@@ -251,11 +278,12 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && manualLayer.innerHTML) closeManual();
+  if (e.key === 'Escape' && settingsLayer.innerHTML) toggleSettings(false);
+  else if (e.key === 'Escape' && manualLayer.innerHTML) closeManual();
 });
 
 bindLobby(screen, () => state.room, (ev, data) => socket.emit(ev, data));
-bindManual(manualLayer);
+bindSettings(settingsLayer);
 
 // --- Sunucu olayları ---
 
@@ -295,6 +323,8 @@ socket.on('game:timer', (tp) => {
 socket.on('game:strike', (s) => state.view?.onStrike?.(s));
 socket.on('game:solved', (s) => state.view?.onSolved?.(s));
 socket.on('game:event', (ev) => state.view?.onEvent?.(ev));
+socket.on('game:paused', (p) => state.view?.onPaused?.(p));
+socket.on('notes:update', (n) => state.view?.onNotes?.(n));
 socket.on('game:end', (r) => {
   const first = !state.result;
   state.result = r;
