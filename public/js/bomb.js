@@ -88,7 +88,7 @@ export class DefuserView {
         <main class="stage" id="stage">
           <div class="bomb-scaler" id="scaler" style="width:${DESIGN_W}px;height:${DESIGN_H}px">
             <div class="bomb-view show-front" id="bombView">
-              <div class="bomb" id="bomb">
+              <div class="bomb" id="bomb" data-face="front">
                 <div class="face front">${this.faceHTML(0)}</div>
                 <div class="face back">${this.faceHTML(1)}</div>
               </div>
@@ -297,6 +297,7 @@ export class DefuserView {
     if (v !== this.view) sound.act(v === 'edges' || this.view === 'edges' ? 'toggle' : 'heavy');
     this.view = v;
     if (v !== 'edges') this.lastFace = v;
+    this.$('#bomb').dataset.face = this.lastFace;
     this.$('#bombView').className = `bomb-view show-${v}`;
     this.$('#faceLabel').textContent = v === 'front' ? t('front') : v === 'back' ? t('back') : t('edges');
     this.root.querySelectorAll('.face-dots i').forEach((d) => d.classList.toggle('on', d.dataset.face === v));

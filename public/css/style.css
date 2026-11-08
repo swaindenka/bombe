@@ -249,7 +249,13 @@ input[type='range'] { accent-color: var(--accent); width: 100%; }
   box-shadow: 0 24px 50px rgba(0, 0, 0, .65), inset 0 2px 0 rgba(255, 255, 255, .08);
   display: grid; grid-template-columns: repeat(3, 200px); grid-template-rows: repeat(2, 200px); gap: 14px; justify-content: center; align-content: center;
 }
-.face.back { transform: rotateY(180deg); }
+.face.front { transform: translateZ(1px); }
+.face.back { transform: rotateY(180deg) translateZ(1px); }
+/* Parlayan/dönen öğeler (pusula oku, kasa kadranı, lambalar) GPU'da ayrı katmana çıkınca
+   backface-visibility'yi yok sayıp diğer yüze yansıyabiliyor. Görünmeyen yüzü çevirmenin
+   tam ortasında tamamen gizle; kenar görünümünde son yüz korunur. */
+.face { transition: visibility 0s linear .32s; }
+.bomb[data-face=front] .face.back, .bomb[data-face=back] .face.front { visibility: hidden; }
 .show-back .bomb { transform: rotateY(180deg); }
 .show-front .face.back, .show-back .face.front, .show-edges .face { pointer-events: none; }
 .show-edges .bomb { transform: rotateX(75deg) scale(.75); opacity: 0; }
@@ -585,6 +591,7 @@ td.digit { font: 700 21px var(--mono); text-align: center; }
 @media (prefers-reduced-motion: reduce) {
   .stage.quake, .game.boom .stage, .manual-wrap.glitch { animation: none; }
   .bomb { transition-duration: .2s; }
+  .face { transition-delay: .1s; }
 }
 
 /* =====================================================================
