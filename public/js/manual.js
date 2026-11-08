@@ -123,7 +123,7 @@ export function bindManual(root) {
     }
   };
   const onGlobalKey = (e) => {
-    if (e.key !== '/' || e.target.closest('input, textarea')) return;
+    if (e.key !== '/' || e.target.closest?.('input, textarea')) return;
     const s = root.querySelector('[data-msearch]');
     if (s && root.offsetParent !== null) {
       e.preventDefault();
