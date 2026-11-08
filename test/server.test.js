@@ -516,3 +516,76 @@ test('hata, çözüm ve sürekli ilgi olayları modül türünü taşır', async
     await cleanup();
   }
 });
+
+test('açık oda listesi: yalnızca herkese açık odalar görünür, canlı güncellenir', async () => {
+  const srv = await createServer({ port: 0, dataFile: null, gameOptions: { startDelayMs: 30 } });
+  const url = `http://localhost:${srv.port}`;
+  const mk = async () => {
+    const c = ioc(url, { transports: ['websocket'], forceNew: true });
+    await once(c, 'connect');
+    return c;
+  };
+  const watcher = await mk();
+  const a = await mk();
+  const b = await mk();
+  try {
+    const first = once(watcher, 'rooms:list');
+    watcher.emit('rooms:watch');
+    assert.deepEqual(await first, []);
+
+    // Açık oda kurulur → listede görünür
+    let next = once(watcher, 'rooms:list');
+    const ra = await emit(a, 'room:create', { name: 'Ayşe', lang: 'tr', public: true });
+    let list = await next;
+    assert.equal(list.length, 1);
+    assert.equal(list[0].code, ra.code);
+    assert.equal(list[0].host, 'Ayşe');
+    assert.equal(list[0].players, 1);
+    assert.equal(list[0].phase, 'lobby');
+    assert.equal(list[0].token, undefined);
+
+    // Gizli oda listede görünmez
+    const rb = await emit(b, 'room:create', { name: 'Burak', lang: 'tr' });
+    await wait(350);
+    next = once(watcher, 'rooms:list');
+    a.emit('room:settings', { title: '  Cuma <b>akşamı</b>  oyunu ' });
+    list = await next;
+    assert.deepEqual(list.map((r) => r.code), [ra.code]);
+    assert.equal(list[0].title, 'Cuma bakşamı/b oyunu', 'başlık temizlenir');
+
+    // Gizli oda açık yapılınca eklenir
+    next = once(watcher, 'rooms:list');
+    b.emit('room:settings', { public: true });
+    list = await next;
+    assert.equal(list.length, 2);
+
+    // Listeden katılım: oyuncu sayısı güncellenir
+    const c = await mk();
+    next = once(watcher, 'rooms:list');
+    await emit(c, 'room:join', { code: ra.code, name: 'Cem' });
+    list = await next;
+    assert.equal(list.find((r) => r.code === ra.code).players, 2);
+
+    // Oda gizlenince ya da boşalınca listeden düşer
+    next = once(watcher, 'rooms:list');
+    a.emit('room:settings', { public: false });
+    list = await next;
+    assert.deepEqual(list.map((r) => r.code), [rb.code]);
+    next = once(watcher, 'rooms:list');
+    b.emit('room:leave');
+    list = await next;
+    assert.deepEqual(list, []);
+
+    // Odaya giren izleyici artık liste almaz
+    const got = [];
+    watcher.on('rooms:list', (l) => got.push(l));
+    await emit(watcher, 'room:join', { code: ra.code, name: 'İzleyen' });
+    a.emit('room:settings', { public: true });
+    await wait(400);
+    assert.equal(got.length, 0);
+    c.close();
+  } finally {
+    [watcher, a, b].forEach((s) => s.close());
+    await srv.close();
+  }
+});
