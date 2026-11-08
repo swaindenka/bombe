@@ -28,6 +28,7 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 - **Uzman bildirimleri:** Hata ve çözümler hangi modülde olduğuyla birlikte bildirilir ("✕ HATA · Kablolar"). Sürekli ilgi isteyen bir modül devreye girince uzmanlar haber alır ve o modülün kılavuz sayfası içindekilerde yanıp söner.
 - **Ritim sayacın yanında:** Ritim modülü her zaman sayacın olduğu ön yüzde, mümkünse sayacın hemen yanında ya da altında çıkar.
 - **Oyuncu çıkarma ve ilk oyun ipuçları:** Oda sahibi lobide oyuncu çıkarabilir. Yeni oyunculara rolleri için bir kerelik kısa ipucu kartı gösterilir.
+- **Sade ve net kılavuz:** Her sayfa aynı düzende: Tanıma → Gerekenler (imhacıdan hangi kasa bilgisinin isteneceği) → numaralı adımlar (kilit yerler sarı vurgulu) → 📝 Örnek → ⚠ Dikkat. Giriş sayfasında terim sözlüğü ve "hangi modül hangi bilgiyi ister" tablosu var. Kafadan hesap gerektiren yerler hazır tablolara çevrildi (Pusula cevap tablosu, Bağlantı Panosu pil sütunları, Şifre Çözücü kaydırma tablosu, Şalterler ters dizilim tablosu); bu tablolar oyunun kullandığı aynı mantıktan üretilir.
 - **Kılavuzda arama:** `/` ile arama kutusuna geçilir (ör. "hdmi" yazınca portlarla ilgili sayfalar kalır). Okunan sayfa içindekilerde vurgulanır.
 - **Duraklatma:** Oda sahibi oyunu duraklatabilir; sayaç, sürekli ilgi isteyen modüller ve olaylar donar.
 - **Tur sonu raporu:** Puan, hangi modülün kaçıncı saniyede çözüldüğü ve hangi modülde kaç hata yapıldığı.

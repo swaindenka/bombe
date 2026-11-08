@@ -1,5 +1,5 @@
 import { MAZES, MAZE_LEDS, MAZE_SIZE, WALL } from '/shared/mazes.js';
-import { ident } from './common.js';
+import { ident, needs, steps, example, warn, mark } from './common.js';
 
 const CELL = 26;
 const PAD = 18;
@@ -47,20 +47,35 @@ export default (L) => {
       L,
       tr
         ? 'Sol üstünde 3×3 küçük ışık, ortasında 6×6 nokta ızgarası, dört yanında ok düğmeleri olan modül.'
-        : 'A module with a 3×3 cluster of small lights in the top-left, a 6×6 grid of dots and arrow buttons on all four sides.'
+        : 'A module with a 3×3 cluster of small lights in the top-left, a 6×6 grid of dots and arrow buttons on all sides.'
     )}
-    <ol>
-      ${
-        tr
-          ? `<li>İmhacıdan sol üstteki <b>3×3 ışık desenini</b> öğrenin ve aşağıda aynı desene sahip labirenti bulun.</li>
-             <li>Izgaradaki <b>beyaz nokta</b> imhacının konumu, <b>kırmızı üçgen</b> hedeftir. Konumları sütun (A–F, soldan sağa) ve satır (1–6, yukarıdan aşağıya) olarak sorun.</li>
-             <li>Beyaz noktayı ok tuşlarıyla adım adım hedefe götürün.</li>
-             <li>Duvarlar imhacıya <b>görünmez</b>. Duvara (ya da dış kenara) doğru hareket etmek hata yazdırır ve nokta yerinde kalır.</li>`
-          : `<li>Ask the defuser for the <b>3×3 light pattern</b> in the top-left and find the maze with the same pattern below.</li>
-             <li>The <b>white dot</b> is the defuser’s position and the <b>red triangle</b> is the goal. Ask for positions as column (A–F, left to right) and row (1–6, top to bottom).</li>
-             <li>Guide the white dot to the goal one step at a time with the arrow buttons.</li>
-             <li>Walls are <b>invisible</b> to the defuser. Moving into a wall (or the outer edge) causes a strike and the dot stays put.</li>`
-      }
-    </ol>
-    <div class="mz-list">${mazes}</div>`;
+    ${needs(L, 'maze')}
+    ${steps(
+      tr
+        ? [
+            `İmhacıdan sol üstteki ${mark('3×3 ışık desenini')} isteyin (hangi ışıklar yanıyor). Aşağıda aynı desenli labirenti bulun.`,
+            `${mark('Beyaz nokta')} imhacının konumu, ${mark('kırmızı üçgen')} hedeftir. Konumları sütun + satır olarak sorun: sütunlar ${mark('A–F soldan sağa')}, satırlar ${mark('1–6 yukarıdan aşağıya')}.`,
+            'Haritada duvarlara çarpmayan bir yol çizin ve imhacıya adım adım söyleyin: "yukarı, yukarı, sağ…".',
+            'Beyaz nokta hedefe varınca modül çözülür.',
+          ]
+        : [
+            `Ask for the ${mark('3×3 light pattern')} in the top-left (which lights are on). Find the maze with the same pattern below.`,
+            `The ${mark('white dot')} is the defuser, the ${mark('red triangle')} is the goal. Ask for positions as column + row: columns ${mark('A–F left to right')}, rows ${mark('1–6 top to bottom')}.`,
+            'Plan a path that avoids the walls and call it out step by step: "up, up, right…".',
+            'The module is solved when the white dot reaches the goal.',
+          ]
+    )}
+    <div class="mz-list">${mazes}</div>
+    ${example(
+      L,
+      tr
+        ? 'Işık deseni çapraz (sol üst, orta, sağ alt) → ilk labirent. Beyaz nokta <b>B5</b>, hedef <b>E2</b>: haritada B5’ten E2’ye duvarsız yolu bulup tarif edin.'
+        : 'Light pattern diagonal (top-left, centre, bottom-right) → the first maze. White dot at <b>B5</b>, goal at <b>E2</b>: find a wall-free path from B5 to E2 and call it out.'
+    )}
+    ${warn(
+      L,
+      tr
+        ? ['Duvarlar imhacıya <b>görünmez</b>. Duvara ya da dış kenara doğru hareket hata yazdırır ve nokta yerinde kalır.', 'Her harekette imhacıya yeni konumunu teyit ettirin; tek adım şaşması yolu bozar.']
+        : ['Walls are <b>invisible</b> to the defuser. Moving into a wall or the outer edge causes a strike and the dot stays put.', 'Have the defuser confirm the position after each move; one wrong step breaks the path.']
+    )}`;
 };

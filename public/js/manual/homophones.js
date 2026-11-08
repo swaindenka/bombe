@@ -1,27 +1,55 @@
 import { HOMOPHONES } from '/shared/words.js';
-import { ident, note } from './common.js';
+import { ident, needs, steps, example, warn, mark } from './common.js';
+
+// Harf harf okunuş: Türkçede karışan harfleri açıkça adlandır
+const SPECIAL_TR = { İ: 'noktalı İ', I: 'noktasız I', Â: 'şapkalı Â', Ş: 'Ş' };
+function spell(word, L) {
+  return word
+    .split('')
+    .map((c) => (L === 'tr' && SPECIAL_TR[c] && c !== 'Ş' ? `<mark>${SPECIAL_TR[c]}</mark>` : c))
+    .join(' · ');
+}
 
 export default (L, CL) => {
   const tr = L === 'tr';
-  const list = HOMOPHONES[CL] || HOMOPHONES.tr;
-  const rows = list.map(([a, b]) => `<tr><td class="mono">${a}</td><td class="mono"><b>${b}</b></td></tr>`).join('');
+  const list = (HOMOPHONES[CL] || HOMOPHONES.tr).slice().sort((a, b) => a[0].localeCompare(b[0], CL === 'en' ? 'en' : 'tr'));
+  const rows = list.map(([a, b]) => `<tr><td class="mono">${a}</td><td class="small">${spell(a, CL)}</td><td class="mono"><b>${b}</b></td></tr>`).join('');
   return `
     ${ident(
       L,
       tr
-        ? 'Kâğıt şerit gibi görünen bir ekranda tek kelime, altında dört kelimeli düğme ve üstte 3 aşama ışığı olan modül.'
+        ? 'Kâğıt şerit görünümlü bir ekranda tek kelime, altında dört kelimeli düğme ve sol üstte 3 aşama ışığı olan modül.'
         : 'A module with a single word on a paper-tape display, four word buttons and 3 stage lights.'
     )}
-    <p>${
+    ${needs(L, 'homophones')}
+    ${steps(
       tr
-        ? 'Modül <b>3 aşamadan</b> oluşur. Ekrandaki kelimeyi tabloda bulun ve karşısındaki kelimenin yazdığı düğmeye bastırın.'
-        : 'The module has <b>3 stages</b>. Find the word on the screen in the table and have the button with the matching word pressed.'
-    }</p>
-    ${note(
-      tr
-        ? 'Kelimeler bilerek birbirine çok benzer. Harf harf kontrol edin: noktalı <b>İ</b> ile noktasız <b>I</b>, şapkalı <b>Â</b> ile <b>A</b> farklı harflerdir.'
-        : 'The words are meant to sound alike. Check them letter by letter and ask the defuser to spell everything.'
+        ? [
+            `İmhacı ekrandaki kelimeyi ${mark('harf harf')} hecelesin (özellikle İ / I / Â).`,
+            'Kelimeyi tabloda bulun (alfabetik sıralı). "Harf harf" sütunu karışan harfleri gösterir.',
+            `Karşısındaki ${mark('Bas')} kelimesini söyleyin; imhacı düğmeleri de harf harf kontrol edip o kelimeye basar.`,
+            'Modül <b>3 aşamadır</b>; her aşamada yeni bir kelime gelir.',
+          ]
+        : [
+            `Have the defuser spell the word on the screen ${mark('letter by letter')}.`,
+            'Find it in the table (alphabetical). The "Spelling" column helps with lookalikes.',
+            `Say the matching ${mark('Press')} word; the defuser checks the buttons letter by letter and presses it.`,
+            'The module has <b>3 stages</b>; each stage shows a new word.',
+          ]
     )}
-    <table class="rules narrow"><thead><tr><th>${tr ? 'Ekranda' : 'Display'}</th><th>${tr ? 'Bas' : 'Press'}</th></tr></thead><tbody>${rows}</tbody></table>
-    <p class="small">${tr ? 'Yanlış düğme hata yazdırır ve yeni bir kelime gelir; aşama ilerlemez.' : 'A wrong button causes a strike and a new word appears; the stage does not advance.'}</p>`;
+    <table class="rules"><thead><tr><th>${tr ? 'Ekranda' : 'Display'}</th><th>${tr ? 'Harf harf' : 'Spelling'}</th><th>${tr ? 'Bas' : 'Press'}</th></tr></thead><tbody>${rows}</tbody></table>
+    ${example(
+      L,
+      CL === 'en'
+        ? (tr ? 'Ekranda <b>RIGHT</b> → tabloda RIGHT → <b>FORE</b> yazan düğmeye bas (FOR ya da FOUR değil!).' : 'Display <b>RIGHT</b> → table → press <b>FORE</b> (not FOR or FOUR!).')
+        : tr
+          ? 'Ekranda <b>BİN</b> (noktalı İ) → <b>KÂR</b> (şapkalı Â) yazan düğmeye bas. Ekranda <b>BIN</b> (noktasız I) olsaydı → <b>HAL</b>.'
+          : 'Display <b>BİN</b> (dotted İ) → press <b>KÂR</b> (with Â). If it were <b>BIN</b> (dotless I) → <b>HAL</b>.'
+    )}
+    ${warn(
+      L,
+      tr
+        ? ['Kelimeler bilerek birbirine benzer: BİN / BIN / PİN / BEN, HAL / HÂL / HALL, KAR / KÂR / KAAR.', 'Ekrandaki kelime düğmelerden birinde de yazıyor olabilir; ona basmak çoğu zaman yanlıştır.', 'Yanlış düğme hata yazdırır ve yeni kelime gelir; aşama ilerlemez.']
+        : ['The words are meant to look and sound alike.', 'The display word may also appear on a button; pressing it is usually wrong.', 'A wrong button causes a strike and a new word appears; the stage does not advance.']
+    )}`;
 };

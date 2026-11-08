@@ -1,32 +1,48 @@
-import { swatch, ident, note } from './common.js';
+import { COMPASS, ARROW_COLORS, arrowAnswer } from '/shared/modules/arrows.js';
+import { swatch, ident, needs, steps, example, warn, mark, DIR_LABEL } from './common.js';
+
+// Hazır cevap tabloları: uzman oku kafasında döndürmek zorunda kalmasın.
+const ODD = { serial: 'AA11A1', batteryHolders: [], indicators: [], portPlates: [] };
 
 export default (L) => {
   const tr = L === 'tr';
-  const rows = [
-    ['red', tr ? 'Okun <b>tersi</b> yöndeki düğme' : 'The button <b>opposite</b> to the arrow'],
-    ['blue', tr ? 'Okun <b>saat yönünde</b> 90° çevrilmiş hâli' : 'The arrow turned 90° <b>clockwise</b>'],
-    ['green', tr ? 'Okun <b>gösterdiği</b> yöndeki düğme' : 'The button the arrow <b>points to</b>'],
-    ['yellow', tr ? 'Okun <b>saat yönünün tersine</b> 90° çevrilmiş hâli' : 'The arrow turned 90° <b>counter-clockwise</b>'],
-  ]
-    .map(([c, t]) => `<tr><td class="nowrap">${swatch(c, L)}</td><td>${t}</td></tr>`)
-    .join('');
+  const D = DIR_LABEL[L];
+  const table = (stage, e) =>
+    `<table class="rules"><thead><tr><th>${tr ? 'Ok rengi ↓ / Okun yönü →' : 'Arrow colour ↓ / Arrow points →'}</th>${COMPASS.map((d) => `<th class="center">${D[d]}</th>`).join('')}</tr></thead><tbody>${ARROW_COLORS.map(
+      (c) => `<tr><td class="nowrap">${swatch(c, L)}</td>${COMPASS.map((d) => `<td class="center"><b>${D[arrowAnswer(stage, d, c, e)]}</b></td>`).join('')}</tr>`
+    ).join('')}</tbody></table>`;
   return `
-    ${ident(
+    ${ident(L, tr ? 'Ortasında renkli büyük bir ok, dört yanında yön düğmeleri ve sol üstte 4 aşama ışığı olan modül.' : 'A module with a large coloured arrow, direction buttons on all four sides and 4 stage lights.')}
+    ${needs(L, 'arrows')}
+    ${steps(
+      tr
+        ? [
+            'Modül <b>4 aşamalıdır</b>. Her aşamada imhacıdan okun <b>rengini</b> ve <b>gösterdiği yönü</b> öğrenin.',
+            `${mark('1. ve 2. aşamada')} her zaman <b>A</b> tablosunu kullanın.`,
+            `${mark('3. ve 4. aşamada')}: seri no. son rakamı <b>çiftse</b> yine <b>A</b>, ${mark('tekse B')} tablosunu kullanın.`,
+            'Tablodaki yöndeki düğmeye bastırın.',
+          ]
+        : [
+            'The module has <b>4 stages</b>. At each stage get the arrow’s <b>colour</b> and the <b>direction it points</b>.',
+            `${mark('In stages 1 and 2')} always use table <b>A</b>.`,
+            `${mark('In stages 3 and 4')}: if the serial’s last digit is <b>even</b> use <b>A</b>, if ${mark('odd use B')}.`,
+            'Press the button in the direction shown in the table.',
+          ]
+    )}
+    <h3>A · ${tr ? 'Aşama 1–2 (ya da seri çift)' : 'Stage 1–2 (or serial even)'}</h3>
+    ${table(1, ODD)}
+    <h3>B · ${tr ? 'Aşama 3–4 ve seri no. son rakamı TEK' : 'Stage 3–4 and serial last digit ODD'}</h3>
+    ${table(3, ODD)}
+    ${example(
       L,
       tr
-        ? 'Ortasında renkli büyük bir ok, dört yanında yön düğmeleri ve sol üstte 4 aşama ışığı olan modül.'
-        : 'A module with a large coloured arrow in the middle, direction buttons on all four sides and 4 stage lights in the top-left.'
+        ? '3. aşama, seri no. <b>…5</b> (tek), ok <b>mavi</b> ve <b>yukarıyı</b> gösteriyor → <b>B</b> tablosu → <b>↓ Aşağı</b>.'
+        : 'Stage 3, serial ends in <b>5</b> (odd), arrow <b>blue</b> pointing <b>up</b> → table <b>B</b> → <b>↓ Down</b>.'
     )}
-    <p>${tr ? 'Modül <b>4 aşamadan</b> oluşur. Her aşamada okun rengine göre basılacak yönü bulun:' : 'The module has <b>4 stages</b>. At each stage find the direction to press from the arrow’s colour:'}</p>
-    <table class="rules"><thead><tr><th>${tr ? 'Ok rengi' : 'Arrow colour'}</th><th>${tr ? 'Basılacak düğme' : 'Button to press'}</th></tr></thead><tbody>${rows}</tbody></table>
-    ${note(
+    ${warn(
+      L,
       tr
-        ? '<b>3. ve 4. aşamada</b> seri numarasının son rakamı <b>tekse</b>, bulduğunuz yönü bir kez daha saat yönünde 90° çevirin.'
-        : 'In <b>stages 3 and 4</b>, if the serial’s last digit is <b>odd</b>, turn the result another 90° clockwise.'
-    )}
-    <p class="small">${
-      tr
-        ? 'Saat yönü: yukarı → sağ → aşağı → sol → yukarı. Yanlış düğme hata yazdırır ve yeni bir ok gelir; aşama ilerlemez.'
-        : 'Clockwise: up → right → down → left → up. A wrong button causes a strike and a new arrow appears; the stage does not advance.'
-    }</p>`;
+        ? ['Kaçıncı aşamada olduğunuzu imhacı sol üstteki yanan ışıklardan söyleyebilir (yanan ışık sayısı + 1).', 'Yanlış düğme hata yazdırır ve yeni bir ok gelir; aşama ilerlemez.']
+        : ['The defuser can tell the stage from the lit lights in the top-left (lit lights + 1).', 'A wrong button causes a strike and a new arrow appears; the stage does not advance.']
+    )}`;
 };
