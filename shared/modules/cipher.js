@@ -9,10 +9,25 @@ export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const cipherShift = (e) => batteryCount(e) + 2 + (serialHasVowel(e) ? 1 : 0);
 
+// Olası kaydırmalar: pil 0–4, +2, sesli harf varsa +1 → 2..7 (kılavuz tablosu bunları kapsar)
+export const MAX_BATTERIES = 4;
+export const CIPHER_SHIFTS = [2, 3, 4, 5, 6, 7];
+
+const shiftLetter = (c, k) => ALPHABET[(((ALPHABET.indexOf(c) + k) % 26) + 26) % 26];
+
+/** Gerçek harfi k kadar İLERİ kaydırır (bombada görünen kod) */
 export const encode = (word, k) =>
   word
     .split('')
-    .map((c) => ALPHABET[(ALPHABET.indexOf(c) + k) % 26])
+    .map((c) => shiftLetter(c, k))
+    .join('');
+
+/** Kod harfini k kadar GERİ kaydırır (kılavuzdaki çözme tablosu bunu kullanır) */
+export const decodeLetter = (c, k) => shiftLetter(c, -k);
+export const decode = (code, k) =>
+  code
+    .split('')
+    .map((c) => decodeLetter(c, k))
     .join('');
 
 export default {

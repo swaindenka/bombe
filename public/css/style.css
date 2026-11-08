@@ -926,3 +926,14 @@ table.rules.compact th, table.rules.compact td { padding: 5px 8px; font-size: 14
 }
 .cipher-table tr > :first-child { position: sticky; left: 0; z-index: 1; background: #e3dac2; }
 .cipher-table thead tr > :first-child { background: #1f1d19; }
+.word-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.word-list span { font: 700 15px var(--mono); letter-spacing: .08em; background: #fff; border: 1px solid #b4ab94; border-radius: 6px; padding: 4px 9px; }
+.shift-table { width: auto; }
+.shift-table td b { font: 700 18px var(--mono); }
+/* Çözme tablosu masaüstünde tek bakışta sığsın; yalnızca dar ekranda yana kaysın */
+.cipher-table { min-width: 0; width: 100%; table-layout: fixed; }
+.cipher-table th, .cipher-table td { padding: 4px 0 !important; font-size: 13px; }
+.cipher-table tr > :first-child { width: 86px; padding: 4px 6px !important; text-align: left; font-size: 12px; }
+@media (max-width: 760px) {
+  .cipher-table { min-width: 700px; }
+}
