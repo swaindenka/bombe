@@ -14,7 +14,7 @@ import { tilesTarget } from '../shared/modules/tiles.js';
 import { coolantAnswer } from '../shared/modules/coolant.js';
 import { PASSPHRASES } from '../shared/words.js';
 import { nextAction } from './solver.js';
-import { cipherShift, encode } from '../shared/modules/cipher.js';
+import { cipherShift, encode, decode, CIPHER_SHIFTS } from '../shared/modules/cipher.js';
 import { gaugeAnswer } from '../shared/modules/gauges.js';
 import { arrowAnswer } from '../shared/modules/arrows.js';
 import { patchTarget, PATCH_TABLE } from '../shared/modules/patch.js';
@@ -270,5 +270,66 @@ test('ritim modülü her zaman sayacın olduğu ön yüzde, mümkünse sayaca bi
     if (rhythms.length) assert.ok([0, 2, 4].includes(rhythms[0].slot), 'ilk ritim sayaca bitişik olmalı');
     assert.equal(new Set(g.modules.map((m) => m.slot)).size, g.modules.length, 'yuvalar çakışmamalı');
     assert.ok(g.modules.every((m) => m.slot !== 1 && m.slot >= 0 && m.slot < 12));
+  }
+});
+
+test('şifre çözücü: kodlama/çözme, kaydırma aralığı ve kılavuz tablosu kapsamı', async () => {
+  const { ALPHABET, CIPHER_SHIFTS, MAX_BATTERIES, encode, decode, decodeLetter, cipherShift } = await import('../shared/modules/cipher.js');
+  const { batteryCount } = await import('../shared/edgework.js');
+  // Çözme, kodlamanın tam tersidir (her kelime, her kaydırma)
+  for (const lang of ['tr', 'en']) {
+    for (const w of CIPHER_WORDS[lang]) {
+      for (let k = 0; k < 26; k++) assert.equal(decode(encode(w, k), k), w);
+    }
+  }
+  // Tek harf çözme: alfabe başında geri sarma (A geri 2 → Y)
+  assert.equal(decodeLetter('A', 2), 'Y');
+  assert.equal(decodeLetter('B', 7), 'U');
+  assert.equal(encode('XYZ', 3), 'ABC');
+  assert.equal(new Set(ALPHABET).size, 26);
+  // Oyunda çıkabilecek her kaydırma kılavuz tablosunda var
+  const rng = createRng(77);
+  const seen = new Set();
+  for (let i = 0; i < 5000; i++) {
+    const e = generateEdgework(rng);
+    assert.ok(batteryCount(e) <= MAX_BATTERIES);
+    const k = cipherShift(e);
+    assert.ok(CIPHER_SHIFTS.includes(k), `kaydırma ${k} kılavuzda yok`);
+    seen.add(k);
+  }
+  assert.deepEqual([...seen].sort(), [...CIPHER_SHIFTS].sort(), 'tablodaki her satır gerçekten kullanılır');
+  // Kılavuzdaki küçük tablo: pil + 2, sesli harf varsa + 3
+  for (let b = 0; b <= MAX_BATTERIES; b++) {
+    assert.equal(cipherShift({ serial: 'BC12D7', batteryHolders: b ? [b] : [], indicators: [], portPlates: [] }), b + 2);
+    assert.equal(cipherShift({ serial: 'AC12D7', batteryHolders: b ? [b] : [], indicators: [], portPlates: [] }), b + 3);
+  }
+});
+
+test('şifre çözücü modülü: her bombada çözülebilir, belirsizlik yok, yanlışta kod değişmez', () => {
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    for (const lang of ['tr', 'en']) {
+      const def = MODULES.cipher;
+      const s = def.generate(rng, e, lang);
+      const list = CIPHER_WORDS[lang];
+      assert.match(s.code, /^[A-Z]{5}$/);
+      assert.equal(s.options.length, 4);
+      assert.equal(new Set(s.options).size, 4, 'düğmeler farklı');
+      assert.ok(s.options.every((w) => list.includes(w)), 'düğmeler listeden');
+      // Kılavuz yolu: kaydırmayı bul, çöz → seçeneklerden tam biri eşleşir
+      const decoded = decode(s.code, cipherShift(e));
+      assert.equal(s.options.filter((w) => w === decoded).length, 1);
+      // Yanlış kaydırma listede olmayan ya da yanlış bir kelime verir; kendi kendini kontrol mümkün
+      for (const k of CIPHER_SHIFTS) if (k !== cipherShift(e)) assert.notEqual(decode(s.code, k), s.word);
+      // Yanlış düğme: hata, kod ve seçenekler aynı kalır
+      const before = JSON.stringify(def.view(s));
+      const wrong = s.options.findIndex((w) => w !== s.word);
+      assert.deepEqual(def.action(s, { press: wrong }), { strike: true });
+      assert.equal(JSON.stringify(def.view(s)), before);
+      assert.deepEqual(def.action(s, { press: s.options.indexOf(decoded) }), { solved: true });
+      // Görünüm cevabı ayrı bir alan olarak sızdırmaz
+      assert.deepEqual(Object.keys(def.view(s)).sort(), ['code', 'options']);
+    }
   }
 });
