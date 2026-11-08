@@ -266,8 +266,12 @@ export class DefuserView {
     };
     this.onResize = () => this.fit();
     this.onMove = (e) => {
+      // Fener sadece karartmada lazım; her fare hareketinde tam ekran katmanı yeniden çizdirme
       const fx = this.$('#fxBlackout');
-      if (!fx) return;
+      if (!fx || !fx.classList.contains('on')) {
+        this.mouse = { x: e.clientX, y: e.clientY };
+        return;
+      }
       fx.style.setProperty('--mx', `${e.clientX}px`);
       fx.style.setProperty('--my', `${e.clientY}px`);
     };
@@ -434,6 +438,11 @@ export class DefuserView {
     toast('⚡ ' + t('ev_' + ev.type), 'warn');
     if (ev.type === 'blackout') {
       sound.blackout();
+      const fx = this.$('#fxBlackout');
+      if (fx && this.mouse) {
+        fx.style.setProperty('--mx', `${this.mouse.x}px`);
+        fx.style.setProperty('--my', `${this.mouse.y}px`);
+      }
       this.pulse('#fxBlackout', 'on', ev.duration);
     } else if (ev.type === 'shake') {
       sound.rumble(ev.duration);
