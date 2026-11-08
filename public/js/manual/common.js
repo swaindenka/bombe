@@ -1,5 +1,6 @@
-// Kılavuz sayfalarının ortak yapı taşları. Her sayfa aynı düzeni kullanır:
-// Tanıma → Gerekenler → Adımlar → (tablo) → Örnek → Dikkat
+// Kılavuz sayfalarının ortak yapı taşları. Her sayfa aynı sade düzeni kullanır:
+// Tanıma → Gerekenler → Kurallar (ve ham veri tablosu) → Örnek → Dikkat.
+// Kılavuz cevapları hazır vermez; kuralı verir. Uzman kuralı imhacının anlattığına uygulayarak bulur.
 
 import { COLOR_HEX, colorName } from '/shared/colors.js';
 
@@ -12,9 +13,9 @@ export const cap = (s) => s.charAt(0).toLocaleUpperCase('tr') + s.slice(1);
 export const mark = (s) => `<mark>${s}</mark>`;
 
 export const ident = (L, text) =>
-  `<p class="ident"><b>👁 ${L === 'tr' ? 'Tanıma' : 'How to recognize'}:</b> ${text}</p>`;
+  `<p class="ident"><b>👁 ${L === 'tr' ? 'Tanıma' : 'Recognize'}:</b> ${text}</p>`;
 
-/** Geriye dönük uyumluluk: düz not kutusu */
+/** Düz not kutusu */
 export const note = (html) => `<div class="note">${html}</div>`;
 
 // Her modülün imhacıdan istemeniz gereken kasa bilgileri
@@ -25,16 +26,20 @@ export const NEEDS = {
   glyphs: ['vowel'],
   arrows: ['odd'],
   maze: [],
+  scale: ['batteries'],
+  patch: ['odd', 'batteries'],
+  elevator: [],
   stroop: ['odd'],
   safe: ['batteries', 'lastDigit', 'ports', 'lit'],
-  patch: ['odd', 'batteries'],
   gauges: ['vowel'],
   rhythm: ['batteries', 'timer'],
   cipher: ['batteries', 'vowel'],
+  logic: [],
   homophones: [],
   coolant: [],
   passphrase: [],
   radio: [],
+  verify: ['lastDigit'],
   pressure: [],
 };
 
@@ -74,8 +79,8 @@ export const steps = (items) => `<ol class="steps">${items.map((i) => `<li>${i}<
 export const ruleOrder = (L) =>
   `<div class="rule-order">↓ ${
     L === 'tr'
-      ? 'Kuralları <b>yukarıdan aşağıya</b> sırayla deneyin. <b>İlk uyan kural geçerlidir</b>; gerisine bakmayın.'
-      : 'Check the rules <b>from top to bottom</b>. <b>The first rule that applies wins</b>; ignore the rest.'
+      ? 'Kuralları <b>yukarıdan aşağıya</b> deneyin. <b>İlk uyan kural geçerlidir</b>.'
+      : 'Check the rules <b>from top to bottom</b>. <b>The first rule that applies wins</b>.'
   }</div>`;
 
 export const example = (L, html, title) =>
@@ -84,9 +89,8 @@ export const example = (L, html, title) =>
 export const warn = (L, items) =>
   `<div class="warn"><div class="warn-title">⚠ ${L === 'tr' ? 'Dikkat' : 'Watch out'}</div><ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`;
 
-/** Evet/hayır dallanması (tablolarda koşullu kurallar için) */
-export const branch = (L, question, yes, no) =>
-  `<div class="branch"><div class="q">${question}</div><div class="yes">✔ ${L === 'tr' ? 'Evet' : 'Yes'} → ${yes}</div><div class="no">✘ ${L === 'tr' ? 'Hayır' : 'No'} → ${no}</div></div>`;
+/** Küçük başlık */
+export const sub = (text) => `<h3>${text}</h3>`;
 
 export const DIR_LABEL = {
   tr: { N: '↑ Yukarı', E: '→ Sağ', S: '↓ Aşağı', W: '← Sol' },

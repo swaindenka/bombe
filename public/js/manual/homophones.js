@@ -17,23 +17,19 @@ export default (L, CL) => {
   return `
     ${ident(
       L,
-      tr
-        ? 'Kâğıt şerit görünümlü bir ekranda tek kelime, altında dört kelimeli düğme ve sol üstte 3 aşama ışığı olan modül.'
-        : 'A module with a single word on a paper-tape display, four word buttons and 3 stage lights.'
+      tr ? 'Kâğıt şerit görünümlü ekranda tek kelime, altında dört kelimeli düğme, sol üstte 3 aşama ışığı.' : 'A single word on a paper-tape display, four word buttons and 3 stage lights.'
     )}
     ${needs(L, 'homophones')}
     ${steps(
       tr
         ? [
-            `İmhacı ekrandaki kelimeyi ${mark('harf harf')} hecelesin (özellikle İ / I / Â).`,
-            'Kelimeyi tabloda bulun (alfabetik sıralı). "Harf harf" sütunu karışan harfleri gösterir.',
-            `Karşısındaki ${mark('Bas')} kelimesini söyleyin; imhacı düğmeleri de harf harf kontrol edip o kelimeye basar.`,
+            `İmhacı ekrandaki kelimeyi ${mark('harf harf')} hecelesin; İ / I / Â gibi işaretleri ayrıca söylesin.`,
+            `Kelimeyi tabloda bulun ve karşısındaki ${mark('Bas')} kelimesini aynı şekilde harf harf söyleyin.`,
             'Modül <b>3 aşamadır</b>; her aşamada yeni bir kelime gelir.',
           ]
         : [
             `Have the defuser spell the word on the screen ${mark('letter by letter')}.`,
-            'Find it in the table (alphabetical). The "Spelling" column helps with lookalikes.',
-            `Say the matching ${mark('Press')} word; the defuser checks the buttons letter by letter and presses it.`,
+            `Find it in the table and spell the matching ${mark('Press')} word back the same way.`,
             'The module has <b>3 stages</b>; each stage shows a new word.',
           ]
     )}
@@ -41,15 +37,15 @@ export default (L, CL) => {
     ${example(
       L,
       CL === 'en'
-        ? (tr ? 'Ekranda <b>RIGHT</b> → tabloda RIGHT → <b>FORE</b> yazan düğmeye bas (FOR ya da FOUR değil!).' : 'Display <b>RIGHT</b> → table → press <b>FORE</b> (not FOR or FOUR!).')
+        ? (tr ? 'Ekranda <b>RIGHT</b> → <b>FORE</b> yazan düğme (FOR ya da FOUR değil).' : 'Display <b>RIGHT</b> → press <b>FORE</b> (not FOR or FOUR).')
         : tr
-          ? 'Ekranda <b>BİN</b> (noktalı İ) → <b>KÂR</b> (şapkalı Â) yazan düğmeye bas. Ekranda <b>BIN</b> (noktasız I) olsaydı → <b>HAL</b>.'
+          ? 'Ekranda <b>BİN</b> (noktalı İ) → <b>KÂR</b> (şapkalı Â) yazan düğme. Ekranda <b>BIN</b> (noktasız I) olsaydı → <b>HAL</b>.'
           : 'Display <b>BİN</b> (dotted İ) → press <b>KÂR</b> (with Â). If it were <b>BIN</b> (dotless I) → <b>HAL</b>.'
     )}
     ${warn(
       L,
       tr
-        ? ['Kelimeler bilerek birbirine benzer: BİN / BIN / PİN / BEN, HAL / HÂL / HALL, KAR / KÂR / KAAR.', 'Ekrandaki kelime düğmelerden birinde de yazıyor olabilir; ona basmak çoğu zaman yanlıştır.', 'Yanlış düğme hata yazdırır ve yeni kelime gelir; aşama ilerlemez.']
-        : ['The words are meant to look and sound alike.', 'The display word may also appear on a button; pressing it is usually wrong.', 'A wrong button causes a strike and a new word appears; the stage does not advance.']
+        ? ['Ekrandaki kelime düğmelerden birinde de yazabilir; ona basmak çoğu zaman yanlıştır.', 'Yanlış düğme hata yazdırır ve yeni kelime gelir; aşama ilerlemez.']
+        : ['The display word may also be on a button; pressing it is usually wrong.', 'A wrong button causes a strike and a new word appears; the stage does not advance.']
     )}`;
 };

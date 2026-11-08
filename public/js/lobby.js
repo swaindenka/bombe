@@ -2,18 +2,28 @@
 
 import { t, getLang, moduleName } from './i18n.js';
 import { esc, formatDuration } from './dom.js';
-import { LEVELS, FREE_LIMITS } from '/shared/levels.js';
+import { LEVELS, FREE_LIMITS, PRESET_IDS, FREE_PRESETS } from '/shared/levels.js';
+import { DIFFICULTIES, DIFFICULTY_IDS } from '/shared/campaign.js';
 import { REGULAR_TYPES, NEEDY_TYPES } from '/shared/modules/index.js';
 import { VERSION } from '/shared/version.js';
 import { opName, livesHTML, pipsHTML, briefHTML } from './campaign-ui.js';
 
 function campaignLobbyHTML(room, isHost) {
+  const L = getLang();
   const run = room.campaign?.run;
   const best = room.campaign?.best;
   const active = run && !run.over;
+  const cur = room.settings.campaignDifficulty || 'normal';
+  const diffPicker = `
+    <div class="field-label">${t('difficulty')}</div>
+    <div class="seg seg-diff">${DIFFICULTY_IDS.map(
+      (id) => `<button class="${cur === id ? 'on' : ''}" data-cdiff="${id}" title="${esc(DIFFICULTIES[id].desc[L])}" ${isHost ? '' : 'disabled'}>${DIFFICULTIES[id].icon} ${esc(DIFFICULTIES[id].name[L])}</button>`
+    ).join('')}</div>
+    <p class="small muted">${esc(DIFFICULTIES[cur].desc[L])} ${active ? esc(t('campaignDifficultyHint')) : ''}</p>`;
+  const runDiff = active && run.difficulty ? `<span class="mod-chip">${DIFFICULTIES[run.difficulty]?.icon || ''} ${esc(DIFFICULTIES[run.difficulty]?.name[L] || '')}</span>` : '';
   const status = active
     ? `<div class="camp-status">
-        <div class="camp-name">🎯 ${opName(run.seed)}</div>
+        <div class="camp-name">🎯 ${opName(run.seed)} ${runDiff}</div>
         <div class="camp-line">${t('campaignStage')} <b>${run.stage}/${run.total}</b> · ${livesHTML(run.lives, run.maxLives)} · <b>${run.score}</b> ${t('points')}</div>
         ${pipsHTML(run)}
         <div class="field-label">${t('nextStage')}</div>
@@ -26,6 +36,7 @@ function campaignLobbyHTML(room, isHost) {
       <b>🎯 ${t('modeCampaign')}</b>
       <p class="small">${t('campaignHint')}</p>
       <ul class="camp-rules"><li>✅ ${t('campaignRule1')}</li><li>💥 ${t('campaignRule2')}</li><li>🏆 ${t('campaignRule3')}</li></ul>
+      ${diffPicker}
       ${status}
       ${best?.stage ? `<p class="small muted">🏅 ${t('campaignBestLine', { n: best.stage, score: best.score })}</p>` : ''}
     </div>`;
@@ -90,6 +101,9 @@ export function lobbyHTML(room, me) {
     `<label class="chip ${checked ? 'on' : ''}"><input type="checkbox" ${attr}="${key}" ${checked ? 'checked' : ''} ${dis}><span>${label}</span></label>`;
 
   const free = `
+    <div class="field-label">${t('presets')}</div>
+    <div class="seg seg-diff">${PRESET_IDS.map((id) => `<button data-preset="${id}" ${dis}>${t('preset_' + id)}</button>`).join('')}</div>
+    <p class="small muted">${t('presetHint')}</p>
     <div class="free-grid">
       ${range('time', t('time'), f.time, formatDuration(f.time * 1000), FREE_LIMITS.time, 30)}
       ${range('regular', t('modulesCap'), f.regular, f.regular, FREE_LIMITS.regular)}
@@ -215,9 +229,11 @@ export function bindLobby(root, getRoom, send) {
   root.addEventListener('click', (e) => {
     const room = getRoom();
     if (!room) return;
-    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang],[data-vis]');
+    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang],[data-vis],[data-cdiff],[data-preset]');
     if (!el || el.disabled) return;
     if (el.dataset.vis) send('room:settings', { public: el.dataset.vis === '1' });
+    else if (el.dataset.cdiff) send('room:settings', { campaignDifficulty: el.dataset.cdiff });
+    else if (el.dataset.preset) send('room:settings', { free: FREE_PRESETS[el.dataset.preset] });
     else if (el.dataset.defuser) send('room:defuser', { playerId: el.dataset.defuser });
     else if (el.dataset.level) send('room:settings', { levelId: el.dataset.level });
     else if (el.dataset.mode) send('room:settings', { mode: el.dataset.mode });

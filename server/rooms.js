@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { Game } from './game.js';
 import { bombConfig, LEVELS, sanitizeFree, DEFAULT_FREE } from '../shared/levels.js';
 import { ALL_TYPES } from '../shared/modules/index.js';
-import { campaignStage, stageBrief, CAMPAIGN_STAGES, CAMPAIGN_LIVES } from '../shared/campaign.js';
+import { campaignStage, stageBrief, CAMPAIGN_STAGES, DIFFICULTY_IDS, difficultyOf } from '../shared/campaign.js';
 import { VERSION } from '../shared/version.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
@@ -12,6 +12,7 @@ const MAX_PLAYERS = 10;
 const ROOM_TTL_MS = 15 * 60 * 1000;
 const HOST_GRACE_MS = 20000;
 const AUTO_NEXT_MS = 12000; // kampanyada sonraki bombaya kadar sonuç ekranı süresi
+const RELEASE_DELAY_MS = 8000; // kopan uzman bu süre içinde dönmezse kılavuz sayfaları diğerlerine açılır
 const MODES = ['level', 'free', 'campaign'];
 const NAME_MAX = 20;
 const LANGS = ['tr', 'en'];
@@ -27,6 +28,7 @@ function defaultSettings(lang) {
     rotateRoles: true,
     expertsSeeTimer: false,
     showModuleNames: false,
+    campaignDifficulty: 'normal', // yeni kampanya bu zorlukla başlar
     public: false, // ana sayfadaki açık oda listesinde görünsün mü
     title: '',
     contentLang: LANGS.includes(lang) ? lang : 'tr',
@@ -131,6 +133,14 @@ class Room {
     player.connected = false;
     player.socketId = null;
     if (!this.connectedPlayers().length) this.emptySince = Date.now();
+    // Sayfa yenileme gibi kısa kopmalarda sayfalar paylaşılmasın; uzman dönmezse açılır
+    if (this.phase === 'playing') {
+      const game = this.game;
+      const t = setTimeout(() => {
+        if (this.game === game && !player.connected) this.releasePages(player.id);
+      }, this.manager.gameOptions?.releaseDelayMs ?? RELEASE_DELAY_MS);
+      t.unref?.();
+    }
     if (player.id === this.hostId) {
       clearTimeout(this.hostTimer);
       this.hostTimer = setTimeout(() => {
@@ -151,6 +161,7 @@ class Room {
   removePlayer(playerId) {
     const p = this.players.get(playerId);
     if (!p) return;
+    this.releasePages(playerId);
     this.players.delete(playerId);
     if (this.phase === 'playing' && playerId === this.gameDefuserId) this.abortGame();
     if (this.hostId === playerId) this.hostId = (this.connectedPlayers()[0] || [...this.players.values()][0])?.id || null;
@@ -211,6 +222,7 @@ class Room {
     if (s.free && typeof s.free === 'object') cur.free = sanitizeFree({ ...cur.free, ...s.free });
     for (const k of ['splitManual', 'rotateRoles', 'expertsSeeTimer', 'showModuleNames', 'public']) if (typeof s[k] === 'boolean') cur[k] = s[k];
     if (typeof s.title === 'string') cur.title = cleanTitle(s.title);
+    if (DIFFICULTY_IDS.includes(s.campaignDifficulty)) cur.campaignDifficulty = s.campaignDifficulty;
     if (LANGS.includes(s.contentLang)) cur.contentLang = s.contentLang;
     this.broadcast();
   }
@@ -262,7 +274,7 @@ class Room {
     const owners = {};
     let k = 0;
     for (const t of [...shuffle(present), ...shuffle(absent)]) owners[t] = order[k++ % order.length].id;
-    return { split: true, owners, expertIds: experts.map((p) => p.id) };
+    return { split: true, owners, expertIds: experts.map((p) => p.id), shared: [] };
   }
 
   manualFor(playerId) {
@@ -270,7 +282,24 @@ class Room {
     if (!m || !m.split || !m.expertIds.includes(playerId)) return { split: false };
     const owners = {};
     for (const [t, id] of Object.entries(m.owners)) owners[t] = this.players.get(id)?.name || '?';
-    return { split: true, mine: Object.keys(m.owners).filter((t) => m.owners[t] === playerId), owners };
+    // Bağlantısı kopan uzmanın sayfaları herkese açılır (shared)
+    return { split: true, mine: Object.keys(m.owners).filter((t) => m.owners[t] === playerId || m.shared.includes(t)), owners };
+  }
+
+  /**
+   * Oyun sırasında bir uzman ayrılır ya da bağlantısı koparsa, kılavuzun onda kalan bölümleri
+   * diğer uzmanlara açılır. Kimse bir sayfayı kaybetmez; dönen uzman da kendi sayfalarını görür.
+   */
+  releasePages(playerId) {
+    const m = this.manual;
+    if (this.phase !== 'playing' || !m?.split || !m.expertIds.includes(playerId)) return;
+    const fresh = Object.keys(m.owners).filter((t) => m.owners[t] === playerId && !m.shared.includes(t));
+    if (!fresh.length) return;
+    m.shared.push(...fresh);
+    for (const id of m.expertIds) {
+      const p = id !== playerId && this.players.get(id);
+      if (p?.connected && p.socketId) this.io.to(p.socketId).emit('game:manual', { manual: this.manualFor(id), released: fresh, by: this.players.get(playerId)?.name || '?' });
+    }
   }
 
   sendInit(player) {
@@ -290,7 +319,8 @@ class Room {
         stage: c.stage,
         total: CAMPAIGN_STAGES,
         lives: this.campaign.run?.lives,
-        maxLives: CAMPAIGN_LIVES,
+        maxLives: this.campaign.run?.maxLives,
+        difficulty: c.difficulty,
         modifiers: c.modifiers,
         place: c.place,
         featured: c.featured,
@@ -299,6 +329,7 @@ class Room {
     if (role === 'expert') {
       extra.manual = this.manualFor(player.id);
       extra.notes = this.notes;
+      if (this.game.config.scrambledManual) extra.scrambledManual = this.game.seed;
     }
     this.io.to(player.socketId).emit('game:init', this.game.initPayload(role, extra));
   }
@@ -374,11 +405,15 @@ class Room {
 
   /** Yeni kampanya: rastgele tohum, 1. bölüm, tam can */
   newCampaignRun() {
+    const difficulty = this.settings.campaignDifficulty;
+    const lives = difficultyOf(difficulty).lives;
     this.campaign.run = {
       seed: crypto.randomInt(1, 2 ** 31),
+      difficulty,
       stage: 1,
       attempt: 0,
-      lives: CAMPAIGN_LIVES,
+      lives,
+      maxLives: lives,
       score: 0,
       history: [],
       over: false,
@@ -392,7 +427,7 @@ class Room {
   campaignConfig() {
     let run = this.campaign.run;
     if (!run || run.over) run = this.newCampaignRun();
-    return campaignStage(run.seed, run.stage, run.attempt);
+    return campaignStage(run.seed, run.stage, run.attempt, run.difficulty);
   }
 
   campaignSummary() {
@@ -400,15 +435,16 @@ class Room {
     if (!run) return null;
     return {
       seed: run.seed,
+      difficulty: run.difficulty,
       stage: run.stage,
       total: CAMPAIGN_STAGES,
       lives: run.lives,
-      maxLives: CAMPAIGN_LIVES,
+      maxLives: run.maxLives,
       score: run.score,
       over: run.over,
       won: run.won,
       history: run.history,
-      next: run.over ? null : stageBrief(campaignStage(run.seed, run.stage, run.attempt)),
+      next: run.over ? null : stageBrief(campaignStage(run.seed, run.stage, run.attempt, run.difficulty)),
     };
   }
 

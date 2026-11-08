@@ -6,12 +6,12 @@ import { createRng, randomSeed } from '../shared/rng.js';
 import { generateEdgework } from '../shared/edgework.js';
 import { scoreFor } from '../shared/levels.js';
 
-export const EVENT_TYPES = ['blackout', 'shake', 'alarm', 'glitch'];
-export const EVENT_DURATION = { blackout: 9000, shake: 2600, alarm: 9000, glitch: 7000 };
+export const EVENT_TYPES = ['blackout', 'shake', 'alarm', 'glitch', 'surge'];
+export const EVENT_DURATION = { blackout: 9000, shake: 2600, alarm: 9000, glitch: 7000, surge: 6000 };
 export const START_DELAY_MS = 3000;
 const TICK_MS = 200;
 const TIMER_SYNC_MS = 1000;
-const STRIKE_SPEEDUP = 0.25;
+const STRIKE_SPEEDUP = 0.25; // her hata sayacı bu oranda hızlandırır (kampanya koşulu değiştirebilir)
 const DISPLAY_TOLERANCE_MS = 2500;
 const TIMER_SLOT = 1; // ön yüz, üst orta
 export const SLOT_COUNT = 12;
@@ -41,6 +41,8 @@ export class Game {
     this.strikes = 0;
     this.baseRate = config.timerRate || 1; // kampanya koşulu: hızlı sayaç
     this.rate = this.baseRate;
+    this.strikeSpeedup = config.strikeSpeedup ?? STRIKE_SPEEDUP; // kampanya koşulu: hassas devre
+    this.solveBonusMs = config.solveBonusMs || 0; // kampanya koşulu: çözülen modül sayaca süre ekler
     this.eventTypes = config.eventTypes?.length ? config.eventTypes : EVENT_TYPES;
     this.eventGap = (ms) => Math.round(ms / (config.eventRate || 1));
     this.elapsed = 0;
@@ -60,15 +62,16 @@ export class Game {
 
   buildModules() {
     const { rng, config } = this;
-    const fill = (pool, n) => {
-      const out = [];
+    // Çeşitlilik: havuzdaki her modül bir kez çıkmadan hiçbiri ikinci kez çıkmaz
+    const fill = (pool, n, used) => {
+      const out = rng.shuffle(pool.filter((t) => !used.includes(t)));
       while (out.length < n && pool.length) out.push(...rng.shuffle(pool));
       return out.slice(0, n);
     };
     // Seviyenin yeni tanıttığı modüller bombada mutlaka bulunsun
     const pick = (pool, n) => {
       const intro = rng.shuffle((config.introduces || []).filter((t) => pool.includes(t))).slice(0, n);
-      return [...intro, ...fill(pool, n - intro.length)];
+      return [...intro, ...fill(pool, n - intro.length, intro)];
     };
     const types = [
       ...pick(config.pool, config.regular).map((t) => ({ type: t, needy: false })),
@@ -213,7 +216,14 @@ export class Game {
   }
 
   fireEvent(type) {
-    this.hooks.toAll?.('game:event', { type, duration: EVENT_DURATION[type] });
+    const ev = { type, duration: EVENT_DURATION[type] };
+    if (type === 'surge') {
+      // Elektrik dalgalanması: çözülmemiş bir modülün ekranı bir süre karıncalanır
+      const open = this.regularModules.filter((m) => !m.solved);
+      if (!open.length) return;
+      ev.moduleId = this.rng.pick(open).id;
+    }
+    this.hooks.toAll?.('game:event', ev);
   }
 
   deactivateNeedy(m) {
@@ -225,7 +235,7 @@ export class Game {
     this.advance();
     this.strikes++;
     if (m) m.strikes++;
-    this.rate = this.baseRate * (1 + STRIKE_SPEEDUP * this.strikes);
+    this.rate = this.baseRate * (1 + this.strikeSpeedup * this.strikes);
     this.hooks.toAll?.('game:strike', { moduleId: m ? m.id : null, type: m ? m.type : null, strikes: this.strikes, maxStrikes: this.maxStrikes });
     if (this.strikes >= this.maxStrikes) {
       this.end('exploded', 'strikes');
@@ -261,6 +271,11 @@ export class Game {
     if (res.solved) {
       m.solved = true;
       m.solvedAt = Date.now() - this.startedAt;
+      if (this.solveBonusMs) {
+        this.advance();
+        this.elapsed = Math.max(0, this.elapsed - this.solveBonusMs);
+        this.syncTimer();
+      }
     }
     if (res.changed || res.solved) this.emitModule(m);
     if (res.strike) {

@@ -1,4 +1,4 @@
-import { RADIO_CALLSIGNS } from '/shared/modules/radio.js';
+import { RADIO_CALLSIGNS, RADIO_CHANNELS } from '/shared/modules/radio.js';
 import { ident, needs, steps, warn, mark } from './common.js';
 
 export default (L) => {
@@ -8,24 +8,14 @@ export default (L) => {
   return `
     ${ident(
       L,
-      tr
-        ? '<b>Sürekli ilgi ister.</b> Turuncu iki ekranlı (çağrı kodu ve kanal), ◀ ▶ düğmeli ve GÖNDER düğmeli bir telsiz.'
-        : '<b>Needy.</b> A radio with two amber displays (call sign and channel), ◀ ▶ buttons and a SEND button.'
+      tr ? '<b>Sürekli ilgi ister.</b> İki turuncu ekranlı (çağrı kodu ve kanal), ◀ ▶ ve GÖNDER düğmeli telsiz.' : '<b>Needy.</b> A radio with two amber displays (call sign and channel), ◀ ▶ and SEND.'
     )}
     ${needs(L, 'radio')}
     ${steps(
       tr
-        ? [
-            `Devreye girince ${mark('sol ekranda')} iki harfli bir <b>çağrı kodu</b> belirir (sağ ekran şu anki kanaldır).`,
-            'Tabloda (alfabetik) kodun <b>kanalını</b> bulun.',
-            `İmhacı kanalı ◀ ▶ ile ayarlar ve ${mark('GÖNDER')}’e basar.`,
-          ]
-        : [
-            `When it switches on, a two-letter <b>call sign</b> appears on the ${mark('left display')} (the right one is the current channel).`,
-            'Find its <b>channel</b> in the table (alphabetical).',
-            `The defuser sets the channel with ◀ ▶ and presses ${mark('SEND')}.`,
-          ]
+        ? [`Devreye girince ${mark('sol ekranda')} iki harfli bir çağrı kodu belirir. Tabloda kanalını bulun.`, `İmhacı kanalı ◀ ▶ ile ayarlar ve ${mark('GÖNDER')}’e basar.`]
+        : [`When it switches on, a two-letter call sign appears on the ${mark('left display')}. Find its channel.`, `The defuser sets the channel with ◀ ▶ and presses ${mark('SEND')}.`]
     )}
     <table class="rules narrow"><thead><tr><th>${tr ? 'Çağrı kodu' : 'Call sign'}</th><th>${tr ? 'Kanal' : 'Channel'}</th></tr></thead><tbody>${rows}</tbody></table>
-    ${warn(L, tr ? ['Kanallar 1–8 arasıdır; 8’den sonra 1’e döner.', 'Yanlış kanaldan göndermek ya da süreyi kaçırmak hata yazdırır.'] : ['Channels go 1–8 and wrap around.', 'Sending on the wrong channel or running out of time causes a strike.'])}`;
+    ${warn(L, tr ? [`Kanallar 1–${RADIO_CHANNELS} arasıdır ve başa döner.`, 'Yanlış kanaldan göndermek ya da süreyi kaçırmak hata yazdırır.'] : [`Channels go 1–${RADIO_CHANNELS} and wrap around.`, 'Sending on the wrong channel or running out of time causes a strike.'])}`;
 };

@@ -15,6 +15,10 @@ import coolant from './coolant.js';
 import passphrase from './passphrase.js';
 import radio from './radio.js';
 import pressure from './pressure.js';
+import scale from './scale.js';
+import elevator from './elevator.js';
+import logic from './logic.js';
+import verify from './verify.js';
 
 export const RENDERERS = {
   wires,
@@ -30,8 +34,12 @@ export const RENDERERS = {
   gauges,
   cipher,
   homophones,
+  scale,
+  elevator,
+  logic,
   coolant,
   passphrase,
   radio,
   pressure,
+  verify,
 };

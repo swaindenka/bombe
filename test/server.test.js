@@ -589,3 +589,62 @@ test('açık oda listesi: yalnızca herkese açık odalar görünür, canlı gü
     await srv.close();
   }
 });
+
+test('bölünmüş kılavuz: bağlantısı kopan uzmanın sayfaları diğer uzmanlara açılır', async () => {
+  const { clients, joins, room, cleanup } = await setup(4, { releaseDelayMs: 150 });
+  try {
+    clients[0].emit('room:settings', { mode: 'level', levelId: 'l5', splitManual: true });
+    clients[0].emit('room:defuser', { playerId: joins[0].playerId });
+    await wait(40);
+    const inits = clients.map((c) => once(c, 'game:init'));
+    clients[0].emit('game:start');
+    const [, e1, e2, e3] = await Promise.all(inits);
+    assert.ok(e1.manual.split && e2.manual.split && e3.manual.split);
+    const lost = e3.manual.mine.slice();
+    assert.ok(lost.length > 0);
+    const upd1 = once(clients[1], 'game:manual');
+    const upd2 = once(clients[2], 'game:manual');
+    clients[3].close();
+    // Hemen değil, kısa bir bekleme süresinden sonra açılır
+    await wait(60);
+    assert.equal(room.manual.shared.length, 0, 'kısa kopmada sayfalar paylaşılmaz');
+    const [m1, m2] = await Promise.all([upd1, upd2]);
+    assert.deepEqual(m1.released.sort(), lost.sort());
+    assert.equal(m1.by, 'Deniz');
+    for (const t of lost) {
+      assert.ok(m1.manual.mine.includes(t) && m2.manual.mine.includes(t), `${t} açılmalı`);
+    }
+    // Kendi sayfalarını kaybetmezler
+    for (const t of e1.manual.mine) assert.ok(m1.manual.mine.includes(t));
+    // Oyun sürer
+    assert.equal(room.phase, 'playing');
+  } finally {
+    await cleanup();
+  }
+});
+
+test('kampanya zorluğu odada seçilir ve yeni kampanyaya uygulanır', async () => {
+  const { clients, room, cleanup } = await setup(2);
+  try {
+    clients[0].emit('room:settings', { mode: 'campaign', campaignDifficulty: 'expert' });
+    clients[1].emit('room:settings', { campaignDifficulty: 'normal' }); // oda sahibi değil: yok sayılır
+    await wait(40);
+    assert.equal(room.settings.campaignDifficulty, 'expert');
+    const init = once(clients[1], 'game:init');
+    clients[0].emit('game:start');
+    const d = await init;
+    assert.equal(d.campaign.difficulty, 'expert');
+    assert.equal(d.campaign.maxLives, 2);
+    assert.equal(room.campaign.run.lives, 2);
+    assert.equal(room.game.config.difficulty, 'expert');
+    // Süren kampanyanın zorluğu sonradan değişmez
+    clients[0].emit('game:abort');
+    await wait(40);
+    clients[0].emit('room:settings', { campaignDifficulty: 'normal' });
+    await wait(40);
+    assert.equal(room.campaign.run.difficulty, 'expert');
+    assert.equal(room.publicState().campaign.run.maxLives, 2);
+  } finally {
+    await cleanup();
+  }
+});

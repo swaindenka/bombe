@@ -1,4 +1,4 @@
-import { PLUG_COLORS, patchTarget } from '/shared/modules/patch.js';
+import { PLUG_COLORS, PATCH_TABLE } from '/shared/modules/patch.js';
 import { swatch, ident, needs, steps, example, warn, mark } from './common.js';
 
 const ICON = {
@@ -13,53 +13,36 @@ const NAMES = {
 };
 const shape = (s, L) => `<span class="shape"><svg viewBox="0 0 24 24">${ICON[s]}</svg>${NAMES[L][s]}</span>`;
 
-// Dört durumun hepsi hazır: uzman şekil değiştirme kuralını kafasında uygulamak zorunda değil
-const E = (odd, batteries) => ({ serial: odd ? 'AA11A1' : 'AA11A2', batteryHolders: batteries ? [2, 1] : [], indicators: [], portPlates: [] });
-
 export default (L) => {
   const tr = L === 'tr';
-  const rows = PLUG_COLORS.map(
-    (c) =>
-      `<tr><td class="nowrap">${swatch(c, L)}</td><td>${shape(patchTarget(c, E(false, false)), L)}</td><td>${shape(patchTarget(c, E(true, false)), L)}</td><td>${shape(patchTarget(c, E(false, true)), L)}</td><td>${shape(patchTarget(c, E(true, true)), L)}</td></tr>`
-  ).join('');
+  const rows = PLUG_COLORS.map((c) => `<tr><td class="nowrap">${swatch(c, L)}</td><td>${shape(PATCH_TABLE.even[c], L)}</td><td>${shape(PATCH_TABLE.odd[c], L)}</td></tr>`).join('');
   return `
-    ${ident(
-      L,
-      tr ? 'Solda dört renkli fiş, sağda şekilli dört priz ve altta bir TEST düğmesi olan modül.' : 'A module with four coloured plugs on the left, four sockets marked with shapes on the right and a TEST button.'
-    )}
+    ${ident(L, tr ? 'Solda dört renkli fiş, sağda şekilli dört priz, altta TEST düğmesi.' : 'Four coloured plugs on the left, four shaped sockets on the right and a TEST button.')}
     ${needs(L, 'patch')}
     ${steps(
       tr
         ? [
-            `Pil sayısına göre tablonun ${mark('sol yarısını (0–2 pil)')} ya da ${mark('sağ yarısını (3+ pil)')} kullanın.`,
-            'Seri no. son rakamı çift mi tek mi, ona göre sütunu seçin.',
-            'Her fiş rengi için bağlanacağı <b>prizin şeklini</b> okuyun.',
-            `İmhacı ${mark('önce fişe, sonra prize')} tıklayarak kabloyu takar. Dördü de takılınca <b>TEST</b>’e basar.`,
+            'Her fiş rengi için prizin şeklini tablodan okuyun (seri no. son rakamına göre sütun).',
+            `Bombada ${mark('3 veya daha fazla pil')} varsa ${mark('üçgen ile kare yer değiştirir')}: tabloda üçgen çıkan fiş kareye, kare çıkan fiş üçgene takılır.`,
+            `İmhacı ${mark('önce fişe, sonra prize')} tıklayarak takar. Dördü de takılınca <b>TEST</b>’e basar.`,
           ]
         : [
-            `Use the ${mark('left half (0–2 batteries)')} or the ${mark('right half (3+ batteries)')} of the table.`,
-            'Pick the column by whether the serial’s last digit is even or odd.',
-            'Read the <b>socket shape</b> for each plug colour.',
-            `The defuser clicks ${mark('the plug, then the socket')} to connect. When all four are in, press <b>TEST</b>.`,
+            'For each plug colour read the socket shape from the table (column by the serial’s last digit).',
+            `If the bomb has ${mark('3 or more batteries')}, ${mark('triangle and square swap')}: a plug that should go to a triangle goes to the square and vice versa.`,
+            `The defuser clicks ${mark('the plug, then the socket')}. With all four in, press <b>TEST</b>.`,
           ]
     )}
-    <table class="rules">
-      <thead>
-        <tr><th rowspan="2">${tr ? 'Fiş' : 'Plug'}</th><th colspan="2" class="center">${tr ? '0–2 pil' : '0–2 batteries'}</th><th colspan="2" class="center">${tr ? '3 veya daha fazla pil' : '3+ batteries'}</th></tr>
-        <tr><th>${tr ? 'Son rakam çift' : 'Even'}</th><th>${tr ? 'Son rakam tek' : 'Odd'}</th><th>${tr ? 'Son rakam çift' : 'Even'}</th><th>${tr ? 'Son rakam tek' : 'Odd'}</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <table class="rules"><thead><tr><th>${tr ? 'Fiş' : 'Plug'}</th><th>${tr ? 'Son rakam çift' : 'Last digit even'}</th><th>${tr ? 'Son rakam tek' : 'Last digit odd'}</th></tr></thead><tbody>${rows}</tbody></table>
     ${example(
       L,
       tr
-        ? `3 pil, seri no. <b>…5</b> (tek) → tablonun sağ yarısı, "tek" sütunu: kırmızı → ${shape(patchTarget('red', E(true, true)), L)}, mavi → ${shape(patchTarget('blue', E(true, true)), L)}, yeşil → ${shape(patchTarget('green', E(true, true)), L)}, sarı → ${shape(patchTarget('yellow', E(true, true)), L)}.`
-        : `3 batteries, serial ends in <b>5</b> (odd) → right half, "odd" column: red → ${shape(patchTarget('red', E(true, true)), L)}, blue → ${shape(patchTarget('blue', E(true, true)), L)}, green → ${shape(patchTarget('green', E(true, true)), L)}, yellow → ${shape(patchTarget('yellow', E(true, true)), L)}.`
+        ? `Seri no. <b>…4</b> (çift), <b>3 pil</b>. Kırmızı → tabloda ${shape(PATCH_TABLE.even.red, L)}, ama 3 pil var → ${shape('square', L)}. Sarı → ${shape(PATCH_TABLE.even.yellow, L)} → ${shape('triangle', L)}. Mavi ve yeşil değişmez.`
+        : `Serial ends in <b>4</b> (even), <b>3 batteries</b>. Red → table says ${shape(PATCH_TABLE.even.red, L)}, but with 3 batteries → ${shape('square', L)}. Yellow → ${shape(PATCH_TABLE.even.yellow, L)} → ${shape('triangle', L)}. Blue and green stay.`
     )}
     ${warn(
       L,
       tr
-        ? ['Fişlerin ve prizlerin sırası her bombada değişir; önemli olan <b>renk</b> ve <b>şekil</b>.', 'Seçili fişe tekrar tıklamak kabloyu çıkarır.', 'Yanlış TEST hata yazdırır ve bütün kablolar çıkar; baştan takın.']
-        : ['Plug and socket order changes every bomb; only <b>colour</b> and <b>shape</b> matter.', 'Clicking the selected plug again unplugs it.', 'A wrong TEST causes a strike and all cables pop out; plug them again.']
+        ? ['Fişlerin ve prizlerin sırası her bombada değişir; önemli olan <b>renk</b> ve <b>şekil</b>.', 'Yanlış TEST hata yazdırır ve bütün kablolar çıkar. Seçili fişe tekrar tıklamak kabloyu çıkarır.']
+        : ['The order of plugs and sockets changes every bomb; only <b>colour</b> and <b>shape</b> matter.', 'A wrong TEST causes a strike and all cables pop out. Clicking a selected plug again unplugs it.']
     )}`;
 };

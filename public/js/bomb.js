@@ -27,7 +27,7 @@ const DESIGN_H = 510;
 const SLOTS_PER_FACE = 6;
 
 // Hareket türüne göre anlık ses
-const ACT_SFX = { cut: 'snip', toggle: 'toggle', rotate: 'dial', tune: 'dial', move: 'step', connect: 'plug', unplug: 'plug', submit: 'heavy', enter: 'heavy', test: 'heavy', send: 'heavy', vent: 'heavy' };
+const ACT_SFX = { cut: 'snip', toggle: 'toggle', rotate: 'dial', tune: 'dial', move: 'step', connect: 'plug', unplug: 'plug', submit: 'heavy', enter: 'heavy', test: 'heavy', send: 'heavy', vent: 'heavy', weigh: 'heavy' };
 const sfxFor = (action) => ACT_SFX[Object.keys(action)[0]] || 'press';
 
 // Ok tuşlarıyla oynanabilen modüller
@@ -440,6 +440,9 @@ export class DefuserView {
     } else if (ev.type === 'alarm') {
       this.pulse('#fxAlarm', 'on', ev.duration);
       sound.alarm(ev.duration);
+    } else if (ev.type === 'surge' && ev.moduleId) {
+      sound.glitch(Math.min(ev.duration, 1500));
+      this.pulse(`.module[data-id="${ev.moduleId}"]`, 'surge', ev.duration);
     }
   }
 
@@ -453,6 +456,7 @@ export class DefuserView {
     this.snooze();
     this.$('#fxBlackout')?.classList.remove('on');
     this.$('#pauseOverlay')?.classList.remove('on');
+    this.root.querySelectorAll('.module.surge').forEach((el) => el.classList.remove('surge'));
     if (result.outcome === 'exploded') {
       sound.stopMusic(true);
       sound.explode();
