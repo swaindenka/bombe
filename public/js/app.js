@@ -488,6 +488,7 @@ socket.on('game:needy', (n) => state.view?.onNeedy?.(n));
 socket.on('game:event', (ev) => state.view?.onEvent?.(ev));
 socket.on('game:paused', (p) => state.view?.onPaused?.(p));
 socket.on('notes:update', (n) => state.view?.onNotes?.(n));
+socket.on('game:manual', (m) => state.view?.onManual?.(m));
 socket.on('game:end', (r) => {
   const first = !state.result;
   state.result = r;

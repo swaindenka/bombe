@@ -4,28 +4,31 @@
 import { REGULAR_TYPES, NEEDY_TYPES, TIERS, NEEDY_TIERS } from './modules/index.js';
 
 const T1 = TIERS[1];
-const T12 = [...TIERS[1], ...TIERS[2]];
 const ALL = REGULAR_TYPES;
 const N1 = NEEDY_TIERS[1];
 const NALL = NEEDY_TYPES;
-// Her seviye 2–3 yeni şey tanıtır
-const L3 = [...T1, 'maze', 'patch'];
-const L4 = [...L3, 'stroop'];
-const L6 = [...T12, 'rhythm', 'cipher'];
+// Her seviye en fazla 2–3 yeni şey tanıtır; süre/modül oranı seviye ilerledikçe ~100 sn'den ~50 sn'ye iner
+const L3 = [...T1, 'maze', 'scale'];
+const L4 = [...L3, 'patch'];
+const L5 = [...L4, 'elevator', 'stroop'];
+const L6 = [...L5, 'safe', 'gauges'];
+const L7 = [...L6, 'rhythm', 'cipher'];
 
 export const MAX_SLOTS = 11; // 12 yuvadan biri sayaç
 
 export const LEVELS = [
   { id: 'l1', name: { tr: 'Acemi Eğitimi', en: 'Rookie Training' }, regular: 3, needy: 0, time: 300, strikes: 3, pool: ['wires', 'switches', 'tiles'], needyPool: [], events: false },
-  { id: 'l2', name: { tr: 'Isınma Turu', en: 'Warm-up' }, regular: 4, needy: 0, time: 300, strikes: 3, pool: T1, needyPool: [], events: false },
-  { id: 'l3', name: { tr: 'Yol Haritası', en: 'Road Map' }, regular: 4, needy: 0, time: 300, strikes: 3, pool: L3, needyPool: [], events: false },
-  { id: 'l4', name: { tr: 'İlk Nöbet', en: 'First Watch' }, regular: 4, needy: 1, time: 300, strikes: 3, pool: L4, needyPool: ['coolant'], events: false },
-  { id: 'l5', name: { tr: 'Sıcak Masa', en: 'Hot Desk' }, regular: 5, needy: 1, time: 330, strikes: 3, pool: T12, needyPool: N1, events: false },
-  { id: 'l6', name: { tr: 'Gece Vardiyası', en: 'Night Shift' }, regular: 5, needy: 1, time: 330, strikes: 3, pool: L6, needyPool: [...N1, 'radio'], events: true },
-  { id: 'l7', name: { tr: 'Kalabalık Panel', en: 'Crowded Panel' }, regular: 6, needy: 2, time: 390, strikes: 3, pool: ALL, needyPool: NALL, events: true },
-  { id: 'l8', name: { tr: 'Çift Taraflı', en: 'Double Sided' }, regular: 7, needy: 2, time: 420, strikes: 3, pool: ALL, needyPool: NALL, events: true },
-  { id: 'l9', name: { tr: 'Kırmızı Alarm', en: 'Red Alert' }, regular: 8, needy: 2, time: 450, strikes: 2, pool: ALL, needyPool: NALL, events: true },
-  { id: 'l10', name: { tr: 'Son Durak', en: 'Last Stop' }, regular: 9, needy: 2, time: 480, strikes: 2, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l2', name: { tr: 'Isınma Turu', en: 'Warm-up' }, regular: 4, needy: 0, time: 330, strikes: 3, pool: T1, needyPool: [], events: false },
+  { id: 'l3', name: { tr: 'Yol Haritası', en: 'Road Map' }, regular: 4, needy: 0, time: 330, strikes: 3, pool: L3, needyPool: [], events: false },
+  { id: 'l4', name: { tr: 'İlk Nöbet', en: 'First Watch' }, regular: 4, needy: 1, time: 330, strikes: 3, pool: L4, needyPool: ['coolant'], events: false },
+  { id: 'l5', name: { tr: 'Kat Kat', en: 'Floor by Floor' }, regular: 5, needy: 1, time: 360, strikes: 3, pool: L5, needyPool: ['coolant'], events: false },
+  { id: 'l6', name: { tr: 'Sıcak Masa', en: 'Hot Desk' }, regular: 5, needy: 1, time: 360, strikes: 3, pool: L6, needyPool: N1, events: false },
+  { id: 'l7', name: { tr: 'Gece Vardiyası', en: 'Night Shift' }, regular: 6, needy: 1, time: 390, strikes: 3, pool: L7, needyPool: [...N1, 'radio'], events: true },
+  { id: 'l8', name: { tr: 'Devre Arası', en: 'Short Circuit' }, regular: 6, needy: 1, time: 390, strikes: 3, pool: ALL, needyPool: [...N1, 'radio', 'verify'], events: true },
+  { id: 'l9', name: { tr: 'Kalabalık Panel', en: 'Crowded Panel' }, regular: 7, needy: 2, time: 420, strikes: 3, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l10', name: { tr: 'Çift Taraflı', en: 'Double Sided' }, regular: 8, needy: 2, time: 450, strikes: 3, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l11', name: { tr: 'Kırmızı Alarm', en: 'Red Alert' }, regular: 9, needy: 2, time: 480, strikes: 2, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l12', name: { tr: 'Son Durak', en: 'Last Stop' }, regular: 9, needy: 2, time: 450, strikes: 2, pool: ALL, needyPool: NALL, events: true },
 ];
 
 // Her seviyenin ilk kez tanıttığı modüller
@@ -43,6 +46,15 @@ export const FREE_LIMITS = {
   needy: [0, 3],
   strikes: [1, 5],
 };
+
+// Serbest mod için hazır zorluk ayarları (lobi düğmeleri doldurur; oda sahibi sonra değiştirebilir)
+export const FREE_PRESETS = {
+  easy: { time: 420, regular: 4, needy: 0, strikes: 4, events: false, pool: [...TIERS[1], ...TIERS[2]], needyPool: NEEDY_TIERS[1] },
+  normal: { time: 360, regular: 6, needy: 1, strikes: 3, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+  hard: { time: 390, regular: 8, needy: 2, strikes: 2, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+  expert: { time: 420, regular: 10, needy: 1, strikes: 1, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+};
+export const PRESET_IDS = Object.keys(FREE_PRESETS);
 
 export const DEFAULT_FREE = {
   time: 300,

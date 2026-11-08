@@ -5,37 +5,23 @@ import tiles from './tiles.js';
 import glyphs from './glyphs.js';
 import arrows from './arrows.js';
 import maze from './maze.js';
+import scale from './scale.js';
+import patch from './patch.js';
+import elevator from './elevator.js';
 import stroop from './stroop.js';
 import safe from './safe.js';
-import patch from './patch.js';
 import gauges from './gauges.js';
 import rhythm from './rhythm.js';
 import cipher from './cipher.js';
+import logic from './logic.js';
 import homophones from './homophones.js';
 import coolant from './coolant.js';
 import passphrase from './passphrase.js';
 import radio from './radio.js';
+import verify from './verify.js';
 import pressure from './pressure.js';
 
-export const PAGE_ORDER = [
-  'intro',
-  'wires',
-  'switches',
-  'tiles',
-  'glyphs',
-  'arrows',
-  'maze',
-  'stroop',
-  'safe',
-  'patch',
-  'gauges',
-  'rhythm',
-  'cipher',
-  'homophones',
-  'coolant',
-  'passphrase',
-  'radio',
-  'pressure',
-];
-export const PAGES = { intro, wires, switches, tiles, glyphs, arrows, maze, stroop, safe, patch, gauges, rhythm, cipher, homophones, coolant, passphrase, radio, pressure };
-export const NEEDY_PAGES = ['coolant', 'passphrase', 'radio', 'pressure'];
+// Sayfa sırası modüllerin tanıtılma sırasını izler (kolaydan zora), sürekli ilgi isteyenler sonda
+export const PAGES = { intro, wires, switches, tiles, glyphs, arrows, maze, scale, patch, elevator, stroop, safe, gauges, rhythm, cipher, logic, homophones, coolant, passphrase, radio, verify, pressure };
+export const PAGE_ORDER = Object.keys(PAGES);
+export const NEEDY_PAGES = ['coolant', 'passphrase', 'radio', 'verify', 'pressure'];

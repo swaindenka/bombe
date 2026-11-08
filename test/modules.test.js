@@ -333,3 +333,233 @@ test('şifre çözücü modülü: her bombada çözülebilir, belirsizlik yok, y
     }
   }
 });
+
+// --- Sürüm 3: yeni modüller, kural tabanlı kılavuz, çeşitlilik ---
+
+test('mantık kapıları: kapı kuralları, çözülebilirlik ve yanlış TEST', async () => {
+  const { circuitOutput, gateOut, logicSolutions, ALL_INPUTS } = await import('../shared/modules/logic.js');
+  // Kılavuzdaki tanımlar: daire = ikisi de açık, üçgen = en az biri, elmas = farklı, turuncu = ters
+  const T = true;
+  const F = false;
+  assert.equal(gateOut({ shape: 'circle' }, T, T), T);
+  assert.equal(gateOut({ shape: 'circle' }, T, F), F);
+  assert.equal(gateOut({ shape: 'triangle' }, F, T), T);
+  assert.equal(gateOut({ shape: 'triangle' }, F, F), F);
+  assert.equal(gateOut({ shape: 'diamond' }, T, F), T);
+  assert.equal(gateOut({ shape: 'diamond' }, T, T), F);
+  assert.equal(gateOut({ shape: 'circle', inverted: true }, T, T), F);
+  // Kılavuz örneği: beyaz daire, turuncu üçgen, beyaz elmas; A↑ B↑ C↓ → açık
+  const ex = [{ shape: 'circle' }, { shape: 'triangle', inverted: true }, { shape: 'diamond' }];
+  assert.equal(circuitOutput(ex, [T, T, F]), T);
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const s = MODULES.logic.generate(rng);
+    const sols = logicSolutions(s.gates, s.lamp);
+    assert.ok(sols.length >= 1 && sols.length <= 4, 'az ama en az bir çözüm');
+    assert.ok(!sols.some((w) => w.every((v, k) => v === s.inputs[k])), 'başlangıç dizilimi çözüm olmamalı');
+    assert.ok(ALL_INPUTS.length === 8);
+    // Yanlış TEST: hata, anahtarlar aynı kalır
+    const before = s.inputs.slice();
+    assert.deepEqual(MODULES.logic.action(s, { test: true }), { strike: true });
+    assert.deepEqual(s.inputs, before);
+  }
+});
+
+test('terazi: toplam kılavuzdaki gibi hesaplanır, tek doğru seçim vardır, yanlış tartı yönü gösterir', async () => {
+  const { scaleTotal, scalePicks, SCALE_ITEMS, SCALE_WEIGHTS, SCALE_MAX } = await import('../shared/modules/scale.js');
+  const e = { serial: 'AB12C7', batteryHolders: [2], indicators: [], portPlates: [] };
+  // Kılavuz örneği: gri çapa + bakır anahtar + 2 pil = 7 + 6 + 2 = 15 → 8 + 4 + 2 + 1
+  const total = scaleTotal([{ kind: 'anchor' }, { kind: 'key', copper: true }], e);
+  assert.equal(total, SCALE_ITEMS.anchor + SCALE_ITEMS.key * 2 + 2);
+  assert.equal(total, 15);
+  assert.deepEqual(scalePicks(15), [true, true, true, true, false]);
+  for (let n = 1; n <= SCALE_MAX; n++) {
+    assert.equal(SCALE_WEIGHTS.reduce((a, w, i) => a + (scalePicks(n)[i] ? w : 0), 0), n);
+  }
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const ew = generateEdgework(rng);
+    const s = MODULES.scale.generate(rng, ew);
+    assert.ok(s.total >= 6 && s.total <= SCALE_MAX);
+    assert.equal(s.total, scaleTotal(s.items, ew));
+    // Hiç ağırlık yokken tartı: sol kefe ağır → tilt 1
+    const r = MODULES.scale.action(s, { weigh: true });
+    assert.equal(r.strike, true);
+    assert.equal(s.tilt, 1);
+    // Hepsi konunca (31) sağ ağır gelir (toplam 31 değilse)
+    SCALE_WEIGHTS.forEach((_, i) => MODULES.scale.action(s, { toggle: i }));
+    assert.equal(s.tilt, 0, 'ağırlık değişince terazi kilitlenir');
+    if (s.total !== SCALE_MAX) {
+      MODULES.scale.action(s, { weigh: true });
+      assert.equal(s.tilt, -1);
+    }
+    assert.ok(!('total' in MODULES.scale.view(s)));
+  }
+});
+
+test('asansör: kılavuzdaki sıra kuralları', async () => {
+  const { nextStop } = await import('../shared/modules/elevator.js');
+  // Kılavuz örneği: kat 5 ▲; 2 beyaz, 4 kırmızı, 7 beyaz, 9 beyaz → 4, 2, 7, 9
+  const s = {
+    floor: 5,
+    dir: 'up',
+    calls: [2, 4, 7, 9].map((f) => ({ floor: f, red: f === 4, served: false })),
+  };
+  const order = [];
+  for (let i = 0; i < 4; i++) {
+    const f = nextStop(s);
+    order.push(f);
+    assert.equal(MODULES.elevator.action(s, { press: f }).changed, true);
+  }
+  assert.deepEqual(order, [4, 2, 7, 9]);
+  // Eşit uzaklıkta iki kırmızı: üstteki
+  assert.equal(nextStop({ floor: 5, dir: 'down', calls: [3, 7].map((f) => ({ floor: f, red: true, served: false })) }), 7);
+  // Yöndeki en yakın beyaz, arkadaki daha yakın olsa bile
+  assert.equal(nextStop({ floor: 5, dir: 'up', calls: [4, 9].map((f) => ({ floor: f, red: false, served: false })) }), 9);
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const st = MODULES.elevator.generate(rng);
+    assert.equal(st.calls.length, 4);
+    assert.ok(!st.calls.some((c) => c.floor === st.floor));
+    const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].find((f) => f !== nextStop(st));
+    const before = JSON.stringify(st);
+    assert.deepEqual(MODULES.elevator.action(st, { press: wrong }), { strike: true });
+    assert.equal(JSON.stringify(st), before, 'yanlış katta asansör yerinde kalır');
+  }
+});
+
+test('doğrulama: renk kuralları, tek doğru düğme', async () => {
+  const { verifyAnswer, pad2 } = await import('../shared/modules/verify.js');
+  const e = { serial: 'AB12C7', batteryHolders: [], indicators: [], portPlates: [] };
+  assert.equal(verifyAnswer(47, 'red', e), 74);
+  assert.equal(pad2(verifyAnswer(30, 'red', e)), '03');
+  assert.equal(verifyAnswer(47, 'blue', e), 54);
+  assert.equal(verifyAnswer(95, 'blue', e), 2);
+  assert.equal(verifyAnswer(58, 'green', e), 41);
+  assert.equal(verifyAnswer(58, 'yellow', e), 16);
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const ew = generateEdgework(rng);
+    const s = MODULES.verify.generate(rng, ew);
+    MODULES.verify.activate(s, rng, ew);
+    assert.equal(s.options.length, 3);
+    assert.equal(new Set(s.options).size, 3);
+    assert.equal(s.options.filter((o) => o === pad2(verifyAnswer(s.number, s.lamp, ew))).length, 1);
+    assert.ok(s.options.every((o) => /^\d\d$/.test(o)));
+    assert.ok(!JSON.stringify(MODULES.verify.view(s)).includes('answer'));
+    const wrong = s.options.findIndex((o) => o !== s.answer);
+    assert.deepEqual(MODULES.verify.action(s, { press: wrong }), { strike: true, deactivate: true });
+  }
+});
+
+// Kılavuz artık hazır cevap tablosu değil kural veriyor: kuralı metindeki gibi bağımsız uygulayıp
+// oyunun cevabıyla karşılaştır.
+test('kural tabanlı kılavuz: pusula, şalterler, bağlantı panosu, şifre çözücü', async () => {
+  const { SWITCH_LAMPS, SWITCH_PATTERNS, switchTarget } = await import('../shared/modules/switches.js');
+  const { ALPHABET } = await import('../shared/modules/cipher.js');
+  const rng = createRng(2024);
+  const CW = ['N', 'E', 'S', 'W'];
+  const turnOf = { red: 2, blue: 1, green: 0, yellow: -1 };
+  for (let i = 0; i < 400; i++) {
+    const e = generateEdgework(rng);
+    const odd = Number(e.serial.at(-1)) % 2 === 1;
+    // Pusula: okun yönünden rengin dediği kadar dön; 3–4. aşama + tek → ¼ tur daha saat yönünde
+    for (const stage of [1, 2, 3, 4])
+      for (const dir of CW)
+        for (const color of Object.keys(turnOf)) {
+          const q = turnOf[color] + (stage >= 3 && odd ? 1 : 0);
+          assert.equal(arrowAnswer(stage, dir, color, e), CW[(CW.indexOf(dir) + q + 8) % 4]);
+        }
+    // Şalterler: tablo dizilimi; yanan gösterge varsa sağdan sola uygulanır
+    const lit = e.indicators.some((x) => x.lit);
+    for (const lamp of SWITCH_LAMPS) {
+      const p = SWITCH_PATTERNS[lamp][odd ? 'odd' : 'even'].split('').map((c) => c === 'U');
+      assert.deepEqual(switchTarget(lamp, e), lit ? p.reverse() : p);
+    }
+    // Bağlantı panosu: tablo; 3+ pilde üçgen ile kare yer değiştirir
+    const swap = { triangle: 'square', square: 'triangle' };
+    for (const c of ['red', 'blue', 'green', 'yellow']) {
+      const base = PATCH_TABLE[odd ? 'odd' : 'even'][c];
+      assert.equal(patchTarget(c, e), batteryCount(e) >= 3 ? swap[base] || base : base);
+    }
+    // Şifre çözücü: kaydırma = pil + 2 (+1 sesli harf); her harften o kadar geri say
+    const k = batteryCount(e) + 2 + (serialHasVowel(e) ? 1 : 0);
+    assert.equal(cipherShift(e), k);
+    const word = CIPHER_WORDS.tr[i % CIPHER_WORDS.tr.length];
+    const back = encode(word, k)
+      .split('')
+      .map((c) => ALPHABET[(ALPHABET.indexOf(c) - k + 26) % 26])
+      .join('');
+    assert.equal(back, word);
+  }
+});
+
+test('çeşitlilik: havuz yetiyorsa bombada aynı modül iki kez çıkmaz', async () => {
+  const { Game } = await import('../server/game.js');
+  for (let seed = 1; seed <= 200; seed++) {
+    const n = 2 + (seed % 9);
+    const g = new Game({ config: { regular: n, needy: 2, time: 300, strikes: 3, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES, introduces: [] }, seed });
+    const regular = g.modules.filter((m) => !m.needy).map((m) => m.type);
+    assert.equal(new Set(regular).size, regular.length, `tekrar eden modül (seed ${seed})`);
+    const needy = g.modules.filter((m) => m.needy).map((m) => m.type);
+    assert.equal(new Set(needy).size, needy.length);
+  }
+  // Havuz küçükse tekrar mecburdur ama her tür en az bir kez çıkar
+  const g = new Game({ config: { regular: 5, needy: 0, time: 300, strikes: 3, pool: ['wires', 'maze'], needyPool: [], introduces: [] }, seed: 9 });
+  assert.deepEqual(new Set(g.modules.map((m) => m.type)), new Set(['wires', 'maze']));
+});
+
+test('seviye eğrisi: modül sayısı artar, modül başına süre azalır, her seviye en çok 3 yenilik getirir', () => {
+  for (let i = 1; i < LEVELS.length; i++) {
+    const a = LEVELS[i - 1];
+    const b = LEVELS[i];
+    assert.ok(b.regular >= a.regular, `${b.id} modül sayısı`);
+    assert.ok(b.time / b.regular <= a.time / a.regular + 0.01, `${b.id} modül başına süre`);
+    assert.ok(b.introduces.length <= 3, `${b.id} çok fazla yenilik`);
+    assert.ok(b.regular + b.needy <= 11);
+  }
+});
+
+test('kampanya zorluğu: zor ve uzman daha kısa süre, uzman daha az hata hakkı', async () => {
+  const { campaignStage, DIFFICULTIES } = await import('../shared/campaign.js');
+  for (let seed = 1; seed <= 40; seed++) {
+    for (let s = 1; s <= 12; s++) {
+      const n = campaignStage(seed * 977, s, 0, 'normal');
+      const h = campaignStage(seed * 977, s, 0, 'hard');
+      const x = campaignStage(seed * 977, s, 0, 'expert');
+      assert.equal(x.difficulty, 'expert');
+      assert.ok(x.strikes >= 1 && x.strikes <= n.strikes);
+      if (s >= 3) assert.ok(h.modifiers.length >= 1 && x.modifiers.length >= 1, 'zorda her bölümde koşul var');
+      assert.ok(!h.modifiers.includes('bonusTime') && !x.modifiers.includes('bonusTime'));
+      assert.ok(x.time >= 120);
+    }
+  }
+  assert.equal(DIFFICULTIES.expert.lives, 2);
+  // Bilinmeyen zorluk normal sayılır
+  assert.deepEqual(campaignStage(5, 4, 0, 'nope'), campaignStage(5, 4, 0, 'normal'));
+});
+
+test('kampanya koşulları oyuna yansır: ödül süresi, hassas devre, dalgalanma olayı', async () => {
+  const { Game } = await import('../server/game.js');
+  const events = [];
+  const g = new Game({
+    config: { regular: 2, needy: 0, time: 300, strikes: 3, pool: ['wires'], needyPool: [], solveBonusMs: 20000, strikeSpeedup: 0.5, events: false },
+    seed: 3,
+    startDelayMs: 0,
+    hooks: { toAll: (ev, d) => events.push([ev, d]) },
+  });
+  g.begin();
+  try {
+    const [w1, w2] = g.modules;
+    g.elapsed = 60000;
+    g.handleAction(w1.id, { cut: w1.state.solution });
+    assert.ok(g.elapsed <= 40100, 'çözülen modül 20 sn ekler');
+    g.handleAction(w2.id, { cut: w2.state.wires.findIndex((_, i) => i !== w2.state.solution) });
+    assert.equal(g.rate, 1.5, 'hassas devre: hata başına %50');
+    g.fireEvent('surge');
+    const surge = events.find(([ev, d]) => ev === 'game:event' && d.type === 'surge');
+    assert.equal(surge[1].moduleId, w2.id, 'dalgalanma çözülmemiş bir modüle gelir');
+  } finally {
+    g.destroy();
+  }
+});

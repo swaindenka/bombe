@@ -6,6 +6,9 @@ import { coolantAnswer } from '../shared/modules/coolant.js';
 import { arrowAnswer } from '../shared/modules/arrows.js';
 import { patchTarget } from '../shared/modules/patch.js';
 import { gaugeAnswer } from '../shared/modules/gauges.js';
+import { logicSolutions } from '../shared/modules/logic.js';
+import { scalePicks } from '../shared/modules/scale.js';
+import { nextStop } from '../shared/modules/elevator.js';
 
 export function nextAction(type, s, e) {
   switch (type) {
@@ -41,6 +44,20 @@ export function nextAction(type, s, e) {
       return { press: s.options.indexOf(s.word) };
     case 'homophones':
       return { press: s.current.buttons.indexOf(s.current.target) };
+    case 'scale': {
+      const want = scalePicks(s.total);
+      const i = s.picked.findIndex((p, k) => p !== want[k]);
+      return i >= 0 ? { toggle: i } : { weigh: true };
+    }
+    case 'elevator':
+      return { press: nextStop(s) };
+    case 'logic': {
+      const want = logicSolutions(s.gates, s.lamp)[0];
+      const i = s.inputs.findIndex((v, k) => v !== want[k]);
+      return logicSolutions(s.gates, s.lamp).some((w) => w.every((v, k) => v === s.inputs[k])) ? { test: true } : { toggle: i };
+    }
+    case 'verify':
+      return { press: s.options.indexOf(s.answer) };
     case 'radio':
       return s.channel === s.answer ? { send: true } : { tune: 1 };
     case 'pressure':

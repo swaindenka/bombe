@@ -45,37 +45,33 @@ export default (L) => {
   return `
     ${ident(
       L,
-      tr
-        ? 'Sol üstünde 3×3 küçük ışık, ortasında 6×6 nokta ızgarası, dört yanında ok düğmeleri olan modül.'
-        : 'A module with a 3×3 cluster of small lights in the top-left, a 6×6 grid of dots and arrow buttons on all sides.'
+      tr ? 'Sol üstte 3×3 küçük ışık, ortada 6×6 nokta ızgarası, dört yanda ok düğmeleri.' : 'A 3×3 cluster of small lights top-left, a 6×6 dot grid and arrow buttons on four sides.'
     )}
     ${needs(L, 'maze')}
     ${steps(
       tr
         ? [
-            `İmhacıdan sol üstteki ${mark('3×3 ışık desenini')} isteyin (hangi ışıklar yanıyor). Aşağıda aynı desenli labirenti bulun.`,
-            `${mark('Beyaz nokta')} imhacının konumu, ${mark('kırmızı üçgen')} hedeftir. Konumları sütun + satır olarak sorun: sütunlar ${mark('A–F soldan sağa')}, satırlar ${mark('1–6 yukarıdan aşağıya')}.`,
-            'Haritada duvarlara çarpmayan bir yol çizin ve imhacıya adım adım söyleyin: "yukarı, yukarı, sağ…".',
-            'Beyaz nokta hedefe varınca modül çözülür.',
+            `${mark('3×3 ışık desenini')} sorun ve aynı desenli labirenti bulun.`,
+            `${mark('Beyaz nokta')} imhacıdır, ${mark('kırmızı üçgen')} hedef. Konumları sütun harfi (A–F, soldan) ve satır numarasıyla (1–6, yukarıdan) sorun.`,
+            'Duvarlara çarpmayan bir yol bulun ve adım adım söyleyin.',
           ]
         : [
-            `Ask for the ${mark('3×3 light pattern')} in the top-left (which lights are on). Find the maze with the same pattern below.`,
-            `The ${mark('white dot')} is the defuser, the ${mark('red triangle')} is the goal. Ask for positions as column + row: columns ${mark('A–F left to right')}, rows ${mark('1–6 top to bottom')}.`,
-            'Plan a path that avoids the walls and call it out step by step: "up, up, right…".',
-            'The module is solved when the white dot reaches the goal.',
+            `Ask for the ${mark('3×3 light pattern')} and find the maze with the same pattern.`,
+            `The ${mark('white dot')} is the defuser, the ${mark('red triangle')} the goal. Ask positions as column letter (A–F, from the left) and row number (1–6, from the top).`,
+            'Find a path that avoids the walls and call it out step by step.',
           ]
     )}
     <div class="mz-list">${mazes}</div>
     ${example(
       L,
       tr
-        ? 'Işık deseni çapraz (sol üst, orta, sağ alt) → ilk labirent. Beyaz nokta <b>B5</b>, hedef <b>E2</b>: haritada B5’ten E2’ye duvarsız yolu bulup tarif edin.'
-        : 'Light pattern diagonal (top-left, centre, bottom-right) → the first maze. White dot at <b>B5</b>, goal at <b>E2</b>: find a wall-free path from B5 to E2 and call it out.'
+        ? 'Işıklar çapraz (sol üst, orta, sağ alt) → ilk labirent. Nokta <b>B5</b>, hedef <b>E2</b>: haritada B5’ten E2’ye duvarsız yolu çizip "yukarı, sağ, sağ…" diye tarif edin.'
+        : 'Lights in a diagonal (top-left, centre, bottom-right) → the first maze. Dot at <b>B5</b>, goal <b>E2</b>: trace a wall-free path and call it out: "up, right, right…".'
     )}
     ${warn(
       L,
       tr
-        ? ['Duvarlar imhacıya <b>görünmez</b>. Duvara ya da dış kenara doğru hareket hata yazdırır ve nokta yerinde kalır.', 'Her harekette imhacıya yeni konumunu teyit ettirin; tek adım şaşması yolu bozar.']
-        : ['Walls are <b>invisible</b> to the defuser. Moving into a wall or the outer edge causes a strike and the dot stays put.', 'Have the defuser confirm the position after each move; one wrong step breaks the path.']
+        ? ['Duvarlar imhacıya <b>görünmez</b>; duvara ya da dış kenara gitmek hata yazdırır ve nokta yerinde kalır.', 'Birkaç adımda bir konumu teyit ettirin.']
+        : ['Walls are <b>invisible</b> to the defuser; moving into a wall or the edge causes a strike and the dot stays put.', 'Confirm the position every few steps.']
     )}`;
 };

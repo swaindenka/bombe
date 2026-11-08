@@ -53,7 +53,7 @@ export class ExpertView {
           <div class="bar-right"><button class="btn btn-small" data-ctl="notes">📝 ${t('notesTitle')}</button>${barControls(this.isHost, { paused: this.paused })}</div>
         </header>
         <div class="expert-body">
-          <div class="manual-wrap" id="manualWrap">${manualHTML({ contentLang: this.init.lang, manual: this.init.manual })}</div>
+          <div class="manual-wrap" id="manualWrap">${this.manualMarkup()}</div>
           ${notesHTML(this.init.notes)}
         </div>
         <div class="fx-flash" id="fxFlash"></div>
@@ -61,6 +61,23 @@ export class ExpertView {
         <div class="countdown" id="countdown"></div>
       </div>`;
     this.updateHud();
+  }
+
+  manualMarkup() {
+    return manualHTML({ contentLang: this.init.lang, manual: this.init.manual, scrambled: this.init.scrambledManual });
+  }
+
+  /** Bağlantısı kopan bir uzmanın sayfaları bize açıldı: kılavuzu yerinde yenile */
+  onManual({ manual, released = [], by }) {
+    const wrap = this.root.querySelector('#manualWrap');
+    if (!wrap || !manual) return;
+    const scroll = wrap.scrollTop;
+    this.init.manual = manual;
+    this.disposeManual?.();
+    wrap.innerHTML = this.manualMarkup();
+    this.disposeManual = bindManual(wrap);
+    wrap.scrollTop = scroll;
+    if (released.length) toast(`📖 ${t('pagesReleased', { name: by, pages: released.map((x) => moduleName(x)).join(', ') })}`, 'warn', 5000);
   }
 
   updateHud() {

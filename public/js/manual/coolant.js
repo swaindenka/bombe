@@ -1,44 +1,25 @@
-import { coolantAnswer } from '/shared/modules/coolant.js';
 import { ident, needs, example, warn, mark, ruleOrder } from './common.js';
 
 export default (L) => {
   const tr = L === 'tr';
-  const samples = ['121', '352', '124', '700', '369'];
-  const rows = samples
-    .map((c) => {
-      const d = c.split('').map(Number);
-      const rep = new Set(d).size < 3;
-      const sum = d.reduce((a, b) => a + b, 0);
-      const why = rep ? (tr ? 'tekrar eden rakam var' : 'a digit repeats') : `${tr ? 'toplam' : 'sum'} ${sum} (${sum % 2 ? (tr ? 'tek' : 'odd') : tr ? 'çift' : 'even'})`;
-      return `<tr><td class="mono">${c}</td><td>${why}</td><td class="center"><b>${coolantAnswer(c)}</b></td></tr>`;
-    })
-    .join('');
   return `
     ${ident(
       L,
-      tr
-        ? '<b>Sürekli ilgi ister.</b> Üstünde küçük bir geri sayım, ortasında üç haneli kod ekranı ve A, B, C düğmeleri olan modül.'
-        : '<b>Needy.</b> A module with a small countdown on top, a three-digit code display and the buttons A, B, C.'
+      tr ? '<b>Sürekli ilgi ister.</b> Üç haneli kod ekranı ve A, B, C düğmeleri.' : '<b>Needy.</b> A three-digit code display and the buttons A, B, C.'
     )}
     ${needs(L, 'coolant')}
-    <p>${tr ? 'Devreye girince ekranda 3 haneli bir kod belirir.' : 'When it switches on, a three-digit code appears.'}</p>
     ${ruleOrder(L)}
     <ol class="steps">
       ${
         tr
-          ? `<li>Kodda <b>aynı rakam iki ya da üç kez</b> geçiyorsa → ${mark('B')}</li>
-             <li>Değilse, üç rakamın toplamı <b>çiftse</b> → ${mark('A')}</li>
-             <li>Değilse (toplam tek) → ${mark('C')}</li>`
-          : `<li>If <b>any digit appears twice or more</b> → ${mark('B')}</li>
-             <li>Otherwise, if the digit sum is <b>even</b> → ${mark('A')}</li>
-             <li>Otherwise (sum odd) → ${mark('C')}</li>`
+          ? `<li>Kodda bir rakam ${mark('tekrar ediyorsa')} → <b>B</b></li>
+             <li>Değilse üç rakamın toplamı ${mark('çiftse')} → <b>A</b></li>
+             <li>Değilse → <b>C</b></li>`
+          : `<li>A digit ${mark('repeats')} → <b>B</b></li>
+             <li>Otherwise, if the digit sum is ${mark('even')} → <b>A</b></li>
+             <li>Otherwise → <b>C</b></li>`
       }
     </ol>
-    ${example(L, `<table class="rules compact"><thead><tr><th>${tr ? 'Kod' : 'Code'}</th><th>${tr ? 'Neden' : 'Why'}</th><th class="center">${tr ? 'Bas' : 'Press'}</th></tr></thead><tbody>${rows}</tbody></table>`, tr ? 'Örnekler' : 'Examples')}
-    ${warn(
-      L,
-      tr
-        ? ['Süre bitmeden basılmazsa ya da yanlış düğmeye basılırsa hata yazılır.', 'Her iki durumda da modül bir süre kapanır, sonra yeniden devreye girer.']
-        : ['Running out of time or pressing a wrong button causes a strike.', 'Either way the module switches off for a while and comes back later.']
-    )}`;
+    ${example(L, tr ? '<b>352</b> → tekrar yok, toplam 10 (çift) → <b>A</b>. <b>700</b> → 0 tekrar ediyor → <b>B</b>.' : '<b>352</b> → no repeat, sum 10 (even) → <b>A</b>. <b>700</b> → 0 repeats → <b>B</b>.')}
+    ${warn(L, tr ? ['Süre biterse ya da yanlış düğmeye basılırsa hata yazılır; modül bir süre kapanıp yeniden gelir.'] : ['Running out of time or a wrong button causes a strike; the module switches off for a while, then returns.'])}`;
 };

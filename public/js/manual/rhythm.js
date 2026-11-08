@@ -11,36 +11,32 @@ export default (L) => {
     ${ident(
       L,
       tr
-        ? 'Büyük bir lamba ve BAS düğmesi olan modül. Lamba bir desenle yanıp söner ve tekrar eder. <b>Her zaman sayacın yanındadır.</b>'
-        : 'A module with a large lamp and a PRESS button. The lamp blinks in a repeating pattern. <b>It is always next to the timer.</b>'
+        ? 'Büyük bir lamba ve BAS düğmesi; lamba bir desenle yanıp söner. <b>Her zaman sayacın yanındadır.</b>'
+        : 'A big lamp and a PRESS button; the lamp blinks in a pattern. <b>Always next to the timer.</b>'
     )}
     ${needs(L, 'rhythm')}
     ${steps(
       tr
         ? [
-            `Lamba her turda ${mark('4 kez')} yanar; her yanış <b>kısa</b> ya da <b>uzun</b>dur. ${mark('Uzun bir karanlık')} desenin başladığını gösterir. İmhacı deseni "kısa, uzun, uzun, kısa" diye söylesin.`,
-            'Desenin rakamını aşağıdaki tablodan bulun.',
-            `Lamba ${swatch('amber', L)} ise rakama ${mark('pil sayısını ekleyin')} (10 veya fazlaysa son rakamı). Lamba ${swatch('white', L)} ise rakam aynen kalır.`,
-            `İmhacı BAS’a, sayaçtaki ${mark('saniyenin son rakamı')} bu rakamken basar. Rakam 4 ise sayaç 02:1<b>4</b>, 01:5<b>4</b>, 00:0<b>4</b> gibi ${mark('…4 ile biten')} herhangi bir anda.`,
+            `Lamba her turda ${mark('4 kez')} yanar: kısa ya da uzun. ${mark('Uzun bir karanlık')} desenin başıdır. Desenin rakamını tablodan bulun.`,
+            `Lamba ${swatch('amber', L)} ise rakama ${mark('pil sayısını ekleyin')} (son rakamı tutun). ${swatch('white', L)} ise rakam aynen kalır.`,
+            `İmhacı BAS’a, sayaçtaki ${mark('saniyenin son rakamı')} bu rakamken basar.`,
           ]
         : [
-            `Each cycle the lamp lights ${mark('4 times')}; each flash is <b>short</b> or <b>long</b>. ${mark('A long darkness')} marks the start of the pattern. Have the defuser say it as "short, long, long, short".`,
-            'Find the pattern’s digit in the table.',
-            `If the lamp is ${swatch('amber', L)}, ${mark('add the battery count')} (keep the last digit). If it is ${swatch('white', L)}, the digit stays as is.`,
-            `The defuser presses PRESS when the ${mark('last digit of the seconds')} equals that digit. For 4: any moment the timer ${mark('ends in 4')}, e.g. 02:1<b>4</b>, 01:5<b>4</b>, 00:0<b>4</b>.`,
+            `Each cycle the lamp lights ${mark('4 times')}: short or long. ${mark('A long darkness')} marks the start. Find the pattern’s digit in the table.`,
+            `If the lamp is ${swatch('amber', L)}, ${mark('add the battery count')} (keep the last digit). If ${swatch('white', L)}, the digit stays.`,
+            `The defuser presses PRESS when the ${mark('last digit of the seconds')} equals that digit.`,
           ]
     )}
     <table class="rules narrow"><thead><tr><th>${tr ? 'Desen' : 'Pattern'}</th><th>${tr ? 'Okunuşu' : 'Read as'}</th><th>${tr ? 'Rakam' : 'Digit'}</th></tr></thead><tbody>${rows}</tbody></table>
     ${example(
       L,
       tr
-        ? `Desen <b>kısa · UZUN · UZUN · kısa</b> → rakam <b>0</b>. Lamba <b>turuncu</b>, 3 pil → 0 + 3 = <b>3</b>. Sayaç …<b>3</b> gösterirken bas (ör. 03:2<b>3</b>).`
-        : `Pattern <b>short · LONG · LONG · short</b> → digit <b>0</b>. Lamp <b>amber</b>, 3 batteries → 0 + 3 = <b>3</b>. Press while the timer ends in <b>3</b> (e.g. 03:2<b>3</b>).`
+        ? `Desen <b>kısa · UZUN · UZUN · kısa</b> → 0. Lamba turuncu, 3 pil → <b>3</b>. Sayaç …<b>3</b> iken bas: 03:2<b>3</b>, 03:1<b>3</b>…`
+        : `Pattern <b>short · LONG · LONG · short</b> → 0. Amber lamp, 3 batteries → <b>3</b>. Press when the timer ends in <b>3</b>: 03:2<b>3</b>, 03:1<b>3</b>…`
     )}
     ${warn(
       L,
-      tr
-        ? ['Hatalar sayacı hızlandırır; saniyeler daha hızlı akar. Rakam gelmeden hazır olun.', 'Yanlış anda basmak hata yazdırır.']
-        : ['Strikes speed up the timer, so seconds tick faster. Be ready before the digit comes.', 'Pressing at the wrong moment causes a strike.']
+      tr ? ['Hatalar sayacı hızlandırır; rakam gelmeden hazır olun.', 'Yanlış anda basmak hata yazdırır.'] : ['Strikes speed up the timer; be ready before the digit comes.', 'Pressing at the wrong moment causes a strike.']
     )}`;
 };

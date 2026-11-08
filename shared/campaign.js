@@ -10,6 +10,16 @@ import { TIERS, NEEDY_TIERS, REGULAR_TYPES } from './modules/index.js';
 export const CAMPAIGN_STAGES = 12;
 export const CAMPAIGN_LIVES = 3;
 
+// Kampanya zorluğu: kampanya başlarken seçilir ve o kampanya boyunca değişmez.
+// timeMul: süre çarpanı · strikesDelta: hata hakkı farkı · extraMods: bölüm başına ek koşul · lives: can
+export const DIFFICULTIES = {
+  normal: { icon: '🟢', timeMul: 1, strikesDelta: 0, extraMods: 0, lives: 3, name: { tr: 'Normal', en: 'Normal' }, desc: { tr: '3 can, standart süre.', en: '3 lives, standard time.' } },
+  hard: { icon: '🟠', timeMul: 0.85, strikesDelta: 0, extraMods: 1, lives: 3, name: { tr: 'Zor', en: 'Hard' }, desc: { tr: 'Süre %15 kısa, 3. bölümden itibaren her bölümde bir koşul fazla.', en: '15% less time, one extra condition per stage from stage 3.' } },
+  expert: { icon: '🔴', timeMul: 0.75, strikesDelta: -1, extraMods: 1, lives: 2, name: { tr: 'Uzman', en: 'Expert' }, desc: { tr: 'Süre %25 kısa, bir hata hakkı eksik, fazladan koşul ve sadece 2 can.', en: '25% less time, one strike fewer, an extra condition and only 2 lives.' } },
+};
+export const DIFFICULTY_IDS = Object.keys(DIFFICULTIES);
+export const difficultyOf = (id) => DIFFICULTIES[id] || DIFFICULTIES.normal;
+
 // Bölümü değiştiren koşullar. minStage: en erken hangi bölümde çıkabilir.
 export const MODIFIERS = {
   darkness: { icon: '🌑', minStage: 3, events: ['blackout'], eventRate: 2, name: { tr: 'Karanlık oda', en: 'Dark room' }, desc: { tr: 'Işıklar sık sık söner.', en: 'The lights keep going out.' } },
@@ -19,6 +29,10 @@ export const MODIFIERS = {
   fragile: { icon: '🥚', minStage: 6, strikesDelta: -1, name: { tr: 'Kırılgan', en: 'Fragile' }, desc: { tr: 'Bir hata hakkı eksik.', en: 'One strike fewer.' } },
   crowded: { icon: '👥', minStage: 5, needyAdd: 1, name: { tr: 'Kalabalık', en: 'Crowded' }, desc: { tr: 'Bir sürekli ilgi modülü fazla.', en: 'One extra needy module.' } },
   bonusTime: { icon: '⏳', minStage: 2, timeAdd: 60, name: { tr: 'Ek süre', en: 'Extra time' }, desc: { tr: 'Sayaca 1 dakika eklenir.', en: 'One extra minute on the clock.' } },
+  bounty: { icon: '💰', minStage: 3, solveBonusMs: 20000, timeMul: 0.85, name: { tr: 'Ödül süresi', en: 'Time bounty' }, desc: { tr: 'Süre kısa başlar ama çözülen her modül sayaca 20 sn ekler.', en: 'Less time to start, but every solved module adds 20 s.' } },
+  sensitive: { icon: '⚡', minStage: 5, strikeSpeedup: 0.5, name: { tr: 'Hassas devre', en: 'Sensitive circuit' }, desc: { tr: 'Her hata sayacı %25 yerine %50 hızlandırır.', en: 'Each strike speeds the timer up by 50% instead of 25%.' } },
+  surge: { icon: '🔌', minStage: 4, events: ['surge'], eventRate: 2, name: { tr: 'Dalgalı akım', en: 'Power surges' }, desc: { tr: 'Modül ekranları sık sık karıncalanır.', en: 'Module screens keep flickering with static.' } },
+  scrambled: { icon: '🗂', minStage: 5, scrambledManual: true, name: { tr: 'Dağınık kılavuz', en: 'Shuffled manual' }, desc: { tr: 'Kılavuzun sayfaları karışık; içindekiler ve arama yok.', en: 'Manual pages are shuffled; no contents or search.' } },
 };
 const MOD_IDS = Object.keys(MODIFIERS);
 
@@ -77,8 +91,9 @@ function featuredFor(seed, stage) {
  * @param {number} stage    1..CAMPAIGN_STAGES
  * @param {number} attempt  0 = ilk deneme; patlayınca artar ve bölüm farklı bir bombayla gelir
  */
-export function campaignStage(seed, stage, attempt = 0) {
+export function campaignStage(seed, stage, attempt = 0, difficulty = 'normal') {
   const s = Math.max(1, Math.min(CAMPAIGN_STAGES, stage));
+  const diff = difficultyOf(difficulty);
   const rng = createRng((seed + s * 7919 + attempt * 104729) >>> 0);
 
   // Kademeler bölüm ilerledikçe açılır
@@ -88,9 +103,10 @@ export function campaignStage(seed, stage, attempt = 0) {
   const featured = featuredFor(seed, s);
 
   // Koşullar
-  const modCount = s <= 2 ? 0 : s <= 5 ? rng.int(0, 1) : s < CAMPAIGN_STAGES ? rng.int(1, 2) : 2;
+  const modCount = (s <= 2 ? 0 : s <= 5 ? rng.int(0, 1) : s < CAMPAIGN_STAGES ? rng.int(1, 2) : 2) + (s >= 3 ? diff.extraMods : 0);
   const candidates = MOD_IDS.filter((id) => MODIFIERS[id].minStage <= s && (id !== 'crowded' || needyUnlocked.length));
-  const modifiers = rng.sample(candidates, modCount);
+  // Ek süre zorlukla çelişmesin: zor kampanyalarda ek süre yerine başka koşullar gelir
+  const modifiers = rng.sample(diff.extraMods ? candidates.filter((id) => id !== 'bonusTime') : candidates, modCount);
   const mod = (key) => modifiers.map((id) => MODIFIERS[id][key]).filter((v) => v !== undefined);
 
   // Taban modül sayısı bölümle artar; ±1 oynar ama bölüme göre bir alt sınırın altına düşmez
@@ -100,12 +116,13 @@ export function campaignStage(seed, stage, attempt = 0) {
   needy = Math.min(3, needy + mod('needyAdd').reduce((a, b) => a + b, 0));
   if (regular + needy > 11) regular = 11 - needy;
 
-  const perModule = 70 - s * 2;
-  let time = round15(regular * perModule + needy * 20 + rng.int(-20, 20));
+  const perModule = 72 - s * 2;
+  const timeMul = diff.timeMul * mod('timeMul').reduce((a, b) => a * b, 1);
+  let time = round15((regular * perModule + needy * 20 + rng.int(-20, 20)) * timeMul);
   time = Math.max(120, time + mod('timeAdd').reduce((a, b) => a + b, 0));
 
   let strikes = s <= 6 ? 3 : 2;
-  strikes = Math.max(1, strikes + mod('strikesDelta').reduce((a, b) => a + b, 0));
+  strikes = Math.max(1, strikes + diff.strikesDelta + mod('strikesDelta').reduce((a, b) => a + b, 0));
 
   const eventTypes = [...new Set(mod('events').flat())];
   const events = s >= 4 || eventTypes.length > 0;
@@ -126,6 +143,10 @@ export function campaignStage(seed, stage, attempt = 0) {
     eventTypes: eventTypes.length ? eventTypes : null,
     eventRate: eventTypes.length ? 2 : 1,
     timerRate: mod('timerRate')[0] || 1,
+    strikeSpeedup: mod('strikeSpeedup')[0],
+    solveBonusMs: mod('solveBonusMs')[0] || 0,
+    scrambledManual: mod('scrambledManual').length > 0,
+    difficulty: DIFFICULTIES[difficulty] ? difficulty : 'normal',
     modifiers,
     featured,
     place: rng.int(0, PLACES.tr.length - 1),

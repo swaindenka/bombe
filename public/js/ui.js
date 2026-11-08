@@ -10,14 +10,15 @@ import { getLang } from './i18n.js';
 import { esc } from './dom.js';
 import { opName, livesHTML, modifiersHTML } from './campaign-ui.js';
 import { placeName } from '/shared/campaign.js';
-import { MODIFIERS } from '/shared/campaign.js';
+import { MODIFIERS, DIFFICULTIES } from '/shared/campaign.js';
 
 /** Üst çubukta hangi seviye / mod / kampanya bölümünde oynandığı */
 export function levelChip(init) {
   const c = init.campaign;
   if (c) {
     const mods = (c.modifiers || []).map((id) => MODIFIERS[id].icon).join('');
-    return `<span class="level-chip">🎯 ${t('campaignStage')} ${c.stage}/${c.total} · ${livesHTML(c.lives, c.maxLives)}${mods ? ` · ${mods}` : ''}</span>`;
+    const diff = c.difficulty && c.difficulty !== 'normal' ? `${DIFFICULTIES[c.difficulty]?.icon || ''} ` : '';
+    return `<span class="level-chip">🎯 ${diff}${t('campaignStage')} ${c.stage}/${c.total} · ${livesHTML(c.lives, c.maxLives)}${mods ? ` · ${mods}` : ''}</span>`;
   }
   if (!init.levelId) return init.mode === 'free' ? `<span class="level-chip">🎲 ${t('modeFree')}</span>` : '';
   const i = LEVELS.findIndex((l) => l.id === init.levelId);
