@@ -243,7 +243,7 @@ export class DefuserView {
       this.send(id, action);
     };
     this.onKey = (e) => {
-      if (e.target.closest('input, textarea, select')) return;
+      if (e.target.closest?.('input, textarea, select')) return;
       if (e.code === 'Space' || e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         this.flip();
