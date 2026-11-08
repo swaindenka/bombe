@@ -48,7 +48,7 @@ export function manualHTML({ contentLang = 'tr', manual = { split: false } } = {
         <div class="toc-empty">${esc(t('noMatches'))}</div>
       </nav>
       <div class="manual-pages">
-        <div class="manual-cover"><div class="cover-logo">BOMBE</div><div class="cover-sub">${L === 'tr' ? 'İmha Uzmanı Kılavuzu · Sürüm 2' : 'Defusal Expert Manual · Version 2'}</div></div>
+        <div class="manual-cover"><div class="cover-logo">BOMBE</div><div class="cover-sub">${L === 'tr' ? 'İmha Uzmanı Kılavuzu · Sürüm 3' : 'Defusal Expert Manual · Version 3'}</div></div>
         ${pages}
         <div class="manual-end" aria-hidden="true">— ${esc(t('manualEnd'))} —</div>
       </div>

@@ -888,3 +888,41 @@ td.mono { font: 700 17px var(--mono); letter-spacing: .06em; }
 button.vis-chip { border: 1px solid var(--line); cursor: pointer; font-family: var(--body); }
 button.vis-chip:disabled { cursor: default; }
 button.vis-chip:not(:disabled):hover { border-color: var(--accent); }
+
+/* ---------- Kılavuz v3: sade ve net düzen ---------- */
+.page mark { background: #ffe27a; color: var(--ink); padding: 0 4px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; font-weight: 700; }
+.page .ident { background: #fffaea; border: 1px solid #e3d6ae; border-left: 5px solid #8a6d10; }
+.needs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 14px; font-size: 14px; }
+.needs > b { margin-right: 2px; }
+.need-chip { display: inline-block; background: #1f2a36; color: #e7f0fb; border-radius: 20px; padding: 3px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.need-none { color: #2f7d4a; font-weight: 700; }
+.page ol.steps { list-style: none; counter-reset: st; padding-left: 0; margin: 12px 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.page ol.steps > li { counter-increment: st; position: relative; padding: 8px 12px 8px 46px; background: #fbf8ef; border: 1px solid #e3dac2; border-radius: 8px; margin: 0; }
+.page ol.steps > li::before { content: counter(st); position: absolute; left: 10px; top: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--paper); font: 700 15px/26px var(--display); text-align: center; }
+.rule-order { background: #e7eefb; border: 1px solid #b6c7e6; color: #1d2f4f; border-radius: 8px; padding: 8px 12px; margin: 10px 0 6px; font-size: 14.5px; }
+.example { background: #eef8ef; border: 1px solid #a9d3b0; border-left: 5px solid #2f9e44; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.ex-title { font: 700 15px var(--display); text-transform: uppercase; letter-spacing: .06em; color: #1f6a33; margin-bottom: 6px; }
+.example table.rules { margin: 4px 0 0; }
+.warn { background: #fdf0ec; border: 1px solid #ebc0b2; border-left: 5px solid #c4381f; border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.warn-title { font: 700 15px var(--display); text-transform: uppercase; letter-spacing: .06em; color: #a42b14; margin-bottom: 4px; }
+.warn ul { margin: 4px 0 0; padding-left: 20px; }
+.legend { padding-left: 20px; }
+.branch { display: flex; flex-direction: column; gap: 3px; }
+.branch .q { font-weight: 700; }
+.branch .yes, .branch .no { padding-left: 12px; border-left: 3px solid; }
+.branch .yes { border-color: #2f9e44; }
+.branch .no { border-color: #c4381f; }
+.branch .branch { margin-top: 2px; }
+table.rules.compact th, table.rules.compact td { padding: 5px 8px; font-size: 14px; }
+.rules th.center, .rules td.center, .center { text-align: center; }
+.lamp-rule { margin: 4px 0; }
+.table-scroll { overflow-x: auto; margin: 8px 0 14px; }
+.cipher-table { min-width: 760px; }
+.cipher-table th, .cipher-table td { padding: 4px 3px !important; font: 600 13.5px var(--mono); }
+.cipher-table tbody th { white-space: nowrap; font-family: var(--display); }
+.cipher-table thead th { background: #1f1d19; color: var(--paper); }
+@media (max-width: 760px) {
+  .page ol.steps > li { padding-left: 40px; }
+}
+.cipher-table tr > :first-child { position: sticky; left: 0; z-index: 1; background: #e3dac2; }
+.cipher-table thead tr > :first-child { background: #1f1d19; }
