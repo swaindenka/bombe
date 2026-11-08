@@ -27,6 +27,8 @@ function defaultSettings(lang) {
     rotateRoles: true,
     expertsSeeTimer: false,
     showModuleNames: false,
+    public: false, // ana sayfadaki açık oda listesinde görünsün mü
+    title: '',
     contentLang: LANGS.includes(lang) ? lang : 'tr',
   };
 }
@@ -39,6 +41,15 @@ function cleanName(name) {
     .slice(0, NAME_MAX);
   return n || 'Oyuncu';
 }
+
+const TITLE_MAX = 30;
+const PUBLIC_LIST_MAX = 50;
+const cleanTitle = (s) =>
+  String(s ?? '')
+    .replace(/[\u0000-\u001f<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, TITLE_MAX);
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -110,6 +121,7 @@ class Room {
     player.socketId = socket.id;
     player.connected = true;
     socket.join(this.channel);
+    socket.leave('browser'); // odaya giren artık listeyi izlemez
     socket.data.code = this.code;
     socket.data.playerId = player.id;
     this.emptySince = null;
@@ -170,6 +182,25 @@ class Room {
 
   broadcast() {
     this.io.to(this.channel).emit('room:state', this.publicState());
+    this.manager.notifyBrowser();
+  }
+
+  /** Açık oda listesinde gösterilen özet (oyuncu jetonları vb. içermez) */
+  listing() {
+    const host = this.players.get(this.hostId);
+    const s = this.settings;
+    return {
+      code: this.code,
+      title: s.title,
+      host: host?.name || '?',
+      players: this.connectedPlayers().length,
+      max: MAX_PLAYERS,
+      phase: this.phase,
+      mode: s.mode,
+      levelId: s.mode === 'level' ? s.levelId : null,
+      stage: s.mode === 'campaign' ? this.campaign.run?.stage || null : null,
+      lang: s.contentLang,
+    };
   }
 
   updateSettings(s) {
@@ -178,7 +209,8 @@ class Room {
     if (MODES.includes(s.mode)) cur.mode = s.mode;
     if (LEVELS.some((l) => l.id === s.levelId)) cur.levelId = s.levelId;
     if (s.free && typeof s.free === 'object') cur.free = sanitizeFree({ ...cur.free, ...s.free });
-    for (const k of ['splitManual', 'rotateRoles', 'expertsSeeTimer', 'showModuleNames']) if (typeof s[k] === 'boolean') cur[k] = s[k];
+    for (const k of ['splitManual', 'rotateRoles', 'expertsSeeTimer', 'showModuleNames', 'public']) if (typeof s[k] === 'boolean') cur[k] = s[k];
+    if (typeof s.title === 'string') cur.title = cleanTitle(s.title);
     if (LANGS.includes(s.contentLang)) cur.contentLang = s.contentLang;
     this.broadcast();
   }
@@ -479,6 +511,7 @@ export class RoomManager {
     this.leaderboard = leaderboard;
     this.gameOptions = gameOptions;
     this.rooms = new Map();
+    this.browserTimer = null;
     this.sweeper = setInterval(() => this.sweep(), 60000);
     this.sweeper.unref?.();
     io.on('connection', (socket) => this.handleConnection(socket));
@@ -497,6 +530,27 @@ export class RoomManager {
     if (!room) return;
     room.destroy();
     this.rooms.delete(code);
+    this.notifyBrowser();
+  }
+
+  /** Açık odalar: en az bir bağlı oyuncusu olan, herkese açık işaretli odalar */
+  publicRooms() {
+    const order = { lobby: 0, result: 1, playing: 2 };
+    return [...this.rooms.values()]
+      .filter((r) => r.settings.public && r.connectedPlayers().length > 0)
+      .map((r) => r.listing())
+      .sort((a, b) => order[a.phase] - order[b.phase] || (a.players >= a.max) - (b.players >= b.max) || b.players - a.players)
+      .slice(0, PUBLIC_LIST_MAX);
+  }
+
+  /** Ana sayfada listeyi izleyenlere değişiklikleri toplu gönder */
+  notifyBrowser() {
+    if (this.browserTimer) return;
+    this.browserTimer = setTimeout(() => {
+      this.browserTimer = null;
+      this.io.to('browser').emit('rooms:list', this.publicRooms());
+    }, 250);
+    this.browserTimer.unref?.();
   }
 
   sweep() {
@@ -508,6 +562,7 @@ export class RoomManager {
 
   close() {
     clearInterval(this.sweeper);
+    clearTimeout(this.browserTimer);
     for (const code of [...this.rooms.keys()]) this.destroyRoom(code);
   }
 
@@ -537,6 +592,7 @@ export class RoomManager {
     socket.on('room:create', (p = {}, ack) => {
       this.leaveCurrent(socket);
       const room = new Room(this, this.newCode(), p.lang);
+      room.settings.public = p.public === true;
       this.rooms.set(room.code, room);
       const player = room.addPlayer(p.name, p.lang);
       room.attach(player, socket);
@@ -573,6 +629,13 @@ export class RoomManager {
     });
 
     socket.on('room:leave', () => this.leaveCurrent(socket));
+
+    // Ana sayfadaki açık oda listesi
+    socket.on('rooms:watch', () => {
+      socket.join('browser');
+      socket.emit('rooms:list', this.publicRooms());
+    });
+    socket.on('rooms:unwatch', () => socket.leave('browser'));
 
     socket.on(
       'room:settings',

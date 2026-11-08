@@ -137,7 +137,7 @@ export function lobbyHTML(room, me) {
     <div class="lobby">
       <header class="topbar">
         <div class="brand">BOMBE</div>
-        <div class="room-chip"><span>${t('room')}</span><b id="roomCode">${esc(room.code)}</b><button class="btn btn-small" data-ui="copy">🔗 ${t('copyLink')}</button></div>
+        <div class="room-chip"><span>${t('room')}</span><b id="roomCode">${esc(room.code)}</b><button class="btn btn-small" data-ui="copy">🔗 ${t('copyLink')}</button><button class="vis-chip ${s.public ? 'pub' : ''}" data-vis="${s.public ? 0 : 1}" title="${esc((s.public ? t('publicRoomHint') : t('privateRoomHint')) + (isHost ? ' ' + t('visToggleHint') : ''))}" ${dis}>${s.public ? t('visPublic') : t('visPrivate')}</button></div>
         <div class="topbar-right">
           <button class="btn btn-small btn-ghost" data-ui="manual">📖 ${t('manual')}</button>
           <button class="icon-btn" data-ui="settings" title="${t('settingsTitle')}" aria-label="${t('settingsTitle')}">⚙</button>
@@ -168,6 +168,8 @@ export function lobbyHTML(room, me) {
             ${toggle('rotateRoles', t('rotateRoles'), t('rotateRolesHint'))}
             ${toggle('expertsSeeTimer', t('expertsSeeTimer'), t('expertsSeeTimerHint'))}
             ${toggle('showModuleNames', t('showModuleNames'), t('showModuleNamesHint'))}
+            ${toggle('public', '🌐 ' + t('publicRoom'), t('publicRoomHint'))}
+            <label class="field room-title"><span>${t('roomTitle')}</span><input data-title maxlength="30" placeholder="${esc(t('roomTitlePlaceholder'))}" value="${esc(s.title || '')}" ${dis}></label>
           </div>
           <div class="bomb-lang">
             <span><b>${t('bombLang')}</b><small>${t('bombLangHint')}</small></span>
@@ -213,9 +215,10 @@ export function bindLobby(root, getRoom, send) {
   root.addEventListener('click', (e) => {
     const room = getRoom();
     if (!room) return;
-    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang]');
+    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang],[data-vis]');
     if (!el || el.disabled) return;
-    if (el.dataset.defuser) send('room:defuser', { playerId: el.dataset.defuser });
+    if (el.dataset.vis) send('room:settings', { public: el.dataset.vis === '1' });
+    else if (el.dataset.defuser) send('room:defuser', { playerId: el.dataset.defuser });
     else if (el.dataset.level) send('room:settings', { levelId: el.dataset.level });
     else if (el.dataset.mode) send('room:settings', { mode: el.dataset.mode });
     else if (el.dataset.clang) send('room:settings', { contentLang: el.dataset.clang });
@@ -231,7 +234,8 @@ export function bindLobby(root, getRoom, send) {
     const room = getRoom();
     if (!room) return;
     const f = room.settings.free;
-    if (el.dataset.free) send('room:settings', { free: { [el.dataset.free]: Number(el.value) } });
+    if (el.dataset.title !== undefined) send('room:settings', { title: el.value });
+    else if (el.dataset.free) send('room:settings', { free: { [el.dataset.free]: Number(el.value) } });
     else if (el.dataset.opt) send('room:settings', { [el.dataset.opt]: el.checked });
     else if (el.dataset.freeflag) send('room:settings', { free: { [el.dataset.freeflag]: el.checked } });
     else if (el.dataset.pool || el.dataset.needypool) {

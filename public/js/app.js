@@ -12,6 +12,7 @@ import { ExpertView } from './expert.js';
 import { applyPrefs } from './prefs.js';
 import { VERSION } from '/shared/version.js';
 import { reportError, installGlobalHandlers } from './errors.js';
+import { LEVELS } from '/shared/levels.js';
 import { settingsHTML, bindSettings } from './ui.js';
 
 applyPrefs();
@@ -56,12 +57,18 @@ function showHome() {
       <form class="card home-card" id="homeForm" autocomplete="off">
         <label class="field"><span>${t('yourName')}</span><input id="nameInput" maxlength="20" placeholder="${esc(t('namePlaceholder'))}" value="${esc(name)}"></label>
         <button type="button" class="btn btn-primary btn-big" data-ui="create">💣 ${t('createRoom')}</button>
+        <label class="check-line"><input type="checkbox" id="publicInput" ${storage.get('bombe.publicDefault', false) ? 'checked' : ''}> <span>🌐 ${t('listPublic')}</span></label>
         <div class="or"><span>${t('or')}</span></div>
         <div class="join-row">
           <input id="codeInput" maxlength="4" placeholder="${esc(t('roomCode'))}" value="${esc(urlCode())}" aria-label="${esc(t('roomCode'))}">
           <button type="submit" class="btn" data-ui="join">${t('joinRoom')}</button>
         </div>
       </form>
+      <section class="card pub-rooms">
+        <div class="pub-head"><h2>🌐 ${t('publicRooms')}</h2><span class="live-dot" title="${esc(t('liveList'))}"></span></div>
+        <p class="muted small">${t('publicRoomsHint')}</p>
+        <ul class="pub-list" id="pubList">${publicRoomsHTML()}</ul>
+      </section>
       <section class="how">
         <h2>${t('howTitle')}</h2>
         <ol>
@@ -75,10 +82,47 @@ function showHome() {
     </div>`;
   const code = document.getElementById('codeInput');
   code.addEventListener('input', () => (code.value = code.value.toUpperCase().replace(/[^A-Z]/g, '')));
+  document.getElementById('publicInput').addEventListener('change', (e) => storage.set('bombe.publicDefault', e.target.checked));
+  socket.emit('rooms:watch');
   document.getElementById('homeForm').addEventListener('submit', (e) => {
     e.preventDefault();
     joinRoom();
   });
+}
+
+// --- Açık odalar ---
+
+function modeLabel(r) {
+  if (r.mode === 'campaign') return `🎯 ${t('modeCampaign')}${r.stage ? ` · ${t('campaignStage')} ${r.stage}` : ''}`;
+  if (r.mode === 'free') return `🎲 ${t('modeFree')}`;
+  const i = LEVELS.findIndex((l) => l.id === r.levelId);
+  return `🏁 ${t('levelShort')} ${i + 1}`;
+}
+
+function publicRoomsHTML() {
+  const list = state.publicRooms;
+  if (!list) return `<li class="pub-empty">${t('connecting')}</li>`;
+  if (!list.length) return `<li class="pub-empty">${t('noPublicRooms')}</li>`;
+  return list
+    .map((r) => {
+      const full = r.players >= r.max;
+      const status = full ? t('full') : r.phase === 'playing' ? t('statusPlaying') : r.phase === 'result' ? t('statusResult') : t('statusLobby');
+      return `
+        <li class="pub-room">
+          <div class="pr-main">
+            <b>${esc(r.title || '🏠 ' + r.host)}</b>
+            <span class="pr-meta">${r.title ? `👤 ${esc(r.host)} · ` : ''}👥 ${r.players}/${r.max} · ${modeLabel(r)} · ${r.lang.toUpperCase()} · <span class="mono">${esc(r.code)}</span></span>
+          </div>
+          <span class="pr-status ${full ? 'full' : r.phase}">${status}</span>
+          <button class="btn btn-small ${full ? '' : 'btn-primary'}" data-ui="joinPublic" data-code="${esc(r.code)}" ${full ? 'disabled' : ''}>${t('joinRoom')}</button>
+        </li>`;
+    })
+    .join('');
+}
+
+function renderPublicRooms() {
+  const ul = document.getElementById('pubList');
+  if (ul) ul.innerHTML = publicRoomsHTML();
 }
 
 function showLobby() {
@@ -86,7 +130,18 @@ function showLobby() {
   sound.startAmbient();
   const scroll = screen.querySelector('.lobby')?.scrollTop ?? 0;
   const winScroll = window.scrollY;
+  // Oda adı yazılırken gelen bir güncelleme yazılanı silmesin
+  const typing = document.activeElement?.matches?.('[data-title]') ? document.activeElement : null;
+  const draft = typing && { value: typing.value, a: typing.selectionStart, b: typing.selectionEnd };
   screen.innerHTML = lobbyHTML(state.room, state.me);
+  if (draft) {
+    const el = screen.querySelector('[data-title]');
+    if (el) {
+      el.value = draft.value;
+      el.focus();
+      el.setSelectionRange(draft.a, draft.b);
+    }
+  }
   const l = screen.querySelector('.lobby');
   if (l) l.scrollTop = scroll;
   window.scrollTo(0, winScroll);
@@ -253,6 +308,7 @@ function readName() {
 }
 
 function enteredRoom(res) {
+  socket.emit('rooms:unwatch');
   state.me = res.playerId;
   storage.set('bombe.session', { code: res.code, token: res.token }, true);
   history.replaceState(null, '', `?room=${res.code}`);
@@ -261,7 +317,8 @@ function enteredRoom(res) {
 async function createRoom() {
   const name = readName();
   if (!name) return;
-  const res = await request('room:create', { name, lang: getLang() });
+  const isPublic = !!document.getElementById('publicInput')?.checked;
+  const res = await request('room:create', { name, lang: getLang(), public: isPublic });
   if (res?.ok) enteredRoom(res);
 }
 
@@ -326,6 +383,11 @@ document.addEventListener('click', (e) => {
   const ui = el.dataset.ui;
   if (ui === 'create') createRoom();
   else if (ui === 'join' && el.type !== 'submit') joinRoom();
+  else if (ui === 'joinPublic') {
+    const input = document.getElementById('codeInput');
+    if (input) input.value = el.dataset.code;
+    joinRoom();
+  }
   else if (ui === 'copy') copyLink();
   else if (ui === 'leave') leaveRoom();
   else if (ui === 'manual') openManual();
@@ -363,7 +425,13 @@ bindSettings(settingsLayer);
 
 socket.on('connect', () => {
   banner.classList.remove('on');
+  if (state.screen === 'home') socket.emit('rooms:watch');
   rejoin();
+});
+
+socket.on('rooms:list', (list) => {
+  state.publicRooms = list;
+  renderPublicRooms();
 });
 
 socket.on('disconnect', () => {

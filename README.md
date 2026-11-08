@@ -21,6 +21,7 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
   - Oda sahibi "Şimdi başla", "Durdur" ve "Yeni kampanya" diyebilir. Odadaki en iyi kampanya sonucu saklanır.
 - **Modül adları (isteğe bağlı):** Lobideki "Modül adlarını göster" seçeneği açıkken imhacının bombasında her modülün altında, kılavuzdaki başlıkla aynı adı taşıyan bir etiket görünür. Yeni başlayanlar için idealdir.
 - **10 seviye ve serbest mod:** Seviyeler modülleri kademeli tanıtır; her seviye 2–3 yeni şey getirir ve lobide "Yeni:" rozetiyle gösterir. Tamamlanan seviyeler ✓ ile işaretlenir. Serbest modda süre, modül sayısı, hata hakkı ve modül havuzu seçilir.
+- **Açık odalar:** Oda kuran kişi odasının herkese açık mı (ana sayfadaki listede görünür) yoksa gizli mi (sadece kodla katılınır) olacağını oda kurarken ya da lobide 🌐/🔒 düğmesiyle seçer ve isteğe bağlı bir oda adı verir. Ana sayfada açık odalar; sahibi, oyuncu sayısı, durumu (lobide/oyunda), modu ve bomba diliyle canlı listelenir ve tek tıkla katılınır. Varsayılan gizlidir.
 - **Bölünmüş kılavuz:** 2 veya daha fazla uzman varsa kılavuzun bölümleri uzmanlar arasında paylaştırılır; kilitli sayfada o bölümün kimde olduğu yazar.
 - **Dönen roller:** Her bombadan sonra imhacı sıradaki oyuncu olur.
 - **Ortak not defteri:** Uzmanlar seri numarası, pil, gösterge ve port bilgisini anlık paylaşır. Seri numarası girilince son rakam (tek/çift), sesli harf ve rakam toplamı otomatik hesaplanır.
