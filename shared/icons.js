@@ -16,6 +16,17 @@ export const ITEM_PATH = {
   hourglass: '<path d="M5 2.5h14M5 21.5h14M7 2.5q0 6 5 9.5q-5 3.5-5 9.5h10q0-6-5-9.5q5-3.5 5-9.5z"/>',
 };
 
+// Işık Paneli modülünün sembolleri
+export const PANEL_PATH = {
+  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22M4.9 4.9l2.5 2.5M16.6 16.6l2.5 2.5M19.1 4.9l-2.5 2.5M7.4 16.6l-2.5 2.5" fill="none"/>',
+  moon: '<path d="M15.5 3a9 9 0 1 0 5.5 14.5A7.5 7.5 0 0 1 15.5 3z"/>',
+  cloud: '<path d="M6.5 19a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.6 1.3A3.9 3.9 0 0 1 17.5 19z"/>',
+  drop: '<path d="M12 2.5C15 7.5 18.5 11 18.5 15a6.5 6.5 0 0 1-13 0c0-4 3.5-7.5 6.5-12.5z"/>',
+  leaf: '<path d="M4 20C4 9 10 4 20.5 3.5 20.5 14 15 20 4 20z"/><path d="M4 20L14 10" fill="none"/>',
+  bolt: '<path d="M13.5 2L5 13.5h6L9.5 22 19 9.5h-6.2z"/>',
+};
+
 /** Tek başına kullanılabilen küçük SVG (kılavuz ve bomba) */
 export const gateIcon = (shape, cls = '') => `<svg class="gate-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${GATE_PATH[shape]}</svg>`;
 export const itemIcon = (kind, cls = '') => `<svg class="item-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ITEM_PATH[kind]}</svg>`;
+export const panelIcon = (sym, cls = '') => `<svg class="panel-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${PANEL_PATH[sym]}</svg>`;

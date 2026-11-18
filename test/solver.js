@@ -9,6 +9,8 @@ import { gaugeAnswer } from '../shared/modules/gauges.js';
 import { logicSolutions } from '../shared/modules/logic.js';
 import { scalePicks } from '../shared/modules/scale.js';
 import { nextStop } from '../shared/modules/elevator.js';
+import { gearAnswer } from '../shared/modules/gears.js';
+import { panelSolution } from '../shared/modules/lights.js';
 
 export function nextAction(type, s, e) {
   switch (type) {
@@ -55,6 +57,14 @@ export function nextAction(type, s, e) {
       const want = logicSolutions(s.gates, s.lamp)[0];
       const i = s.inputs.findIndex((v, k) => v !== want[k]);
       return logicSolutions(s.gates, s.lamp).some((w) => w.every((v, k) => v === s.inputs[k])) ? { test: true } : { toggle: i };
+    }
+    case 'gears': {
+      const a = gearAnswer(s, e);
+      return { press: s.options.findIndex((o) => o.dir === a.dir && o.rpm === a.rpm) };
+    }
+    case 'lights': {
+      const sol = panelSolution(s.cells, s.target);
+      return sol.length ? { press: sol[0] } : { submit: true };
     }
     case 'verify':
       return { press: s.options.indexOf(s.answer) };
