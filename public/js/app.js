@@ -57,6 +57,7 @@ function showHome() {
       <form class="card home-card" id="homeForm" autocomplete="off">
         <label class="field"><span>${t('yourName')}</span><input id="nameInput" maxlength="20" placeholder="${esc(t('namePlaceholder'))}" value="${esc(name)}"></label>
         <button type="button" class="btn btn-primary btn-big" data-ui="create">💣 ${t('createRoom')}</button>
+        <button type="button" class="btn" data-ui="solo">👤 ${t('playSolo')}</button>
         <label class="check-line"><input type="checkbox" id="publicInput" ${storage.get('bombe.publicDefault', false) ? 'checked' : ''}> <span>🌐 ${t('listPublic')}</span></label>
         <div class="or"><span>${t('or')}</span></div>
         <div class="join-row">
@@ -95,6 +96,7 @@ function showHome() {
 function modeLabel(r) {
   if (r.mode === 'campaign') return `🎯 ${t('modeCampaign')}${r.stage ? ` · ${t('campaignStage')} ${r.stage}` : ''}`;
   if (r.mode === 'free') return `🎲 ${t('modeFree')}`;
+  if (r.mode === 'solo') return `👤 ${t('modeSolo')}`;
   const i = LEVELS.findIndex((l) => l.id === r.levelId);
   return `🏁 ${t('levelShort')} ${i + 1}`;
 }
@@ -252,7 +254,7 @@ function mountGame(init) {
     showCrash(reportError(err, `mount ${init.role}`));
     return;
   }
-  showTip(init.role);
+  showTip(init.solo ? 'solo' : init.role);
 }
 
 /** Her rol için bir kerelik kısa ipucu */
@@ -263,7 +265,8 @@ function showTip(role) {
   if (!bar) return;
   const card = document.createElement('div');
   card.className = 'tip-card';
-  card.innerHTML = `<b>💡 ${t(role === 'defuser' ? 'tipDefuserTitle' : 'tipExpertTitle')}</b><ul>${t(role === 'defuser' ? 'tipDefuser' : 'tipExpert')
+  const key = { defuser: 'tipDefuser', expert: 'tipExpert', solo: 'tipSolo' }[role] || 'tipExpert';
+  card.innerHTML = `<b>💡 ${t(key + 'Title')}</b><ul>${t(key)
     .split('|')
     .map((x) => `<li>${x}</li>`)
     .join('')}</ul><button class="btn btn-small btn-primary" data-ui="tipOk" data-role="${role}">${t('tipOk')}</button>`;
@@ -314,12 +317,15 @@ function enteredRoom(res) {
   history.replaceState(null, '', `?room=${res.code}`);
 }
 
-async function createRoom() {
+async function createRoom({ solo = false } = {}) {
   const name = readName();
   if (!name) return;
-  const isPublic = !!document.getElementById('publicInput')?.checked;
+  // Tek başına oynamak için açılan oda her zaman gizlidir
+  const isPublic = !solo && !!document.getElementById('publicInput')?.checked;
   const res = await request('room:create', { name, lang: getLang(), public: isPublic });
-  if (res?.ok) enteredRoom(res);
+  if (!res?.ok) return;
+  enteredRoom(res);
+  if (solo) socket.emit('room:settings', { mode: 'solo' });
 }
 
 async function joinRoom() {
@@ -382,6 +388,7 @@ document.addEventListener('click', (e) => {
   if (!el || el.disabled) return;
   const ui = el.dataset.ui;
   if (ui === 'create') createRoom();
+  else if (ui === 'solo') createRoom({ solo: true });
   else if (ui === 'join' && el.type !== 'submit') joinRoom();
   else if (ui === 'joinPublic') {
     const input = document.getElementById('codeInput');

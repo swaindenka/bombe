@@ -2,7 +2,7 @@
 
 import crypto from 'crypto';
 import { Game } from './game.js';
-import { bombConfig, LEVELS, sanitizeFree, DEFAULT_FREE } from '../shared/levels.js';
+import { bombConfig, LEVELS, sanitizeFree, DEFAULT_FREE, SOLO_IDS } from '../shared/levels.js';
 import { ALL_TYPES } from '../shared/modules/index.js';
 import { campaignStage, stageBrief, CAMPAIGN_STAGES, DIFFICULTY_IDS, difficultyOf } from '../shared/campaign.js';
 import { VERSION } from '../shared/version.js';
@@ -13,7 +13,7 @@ const ROOM_TTL_MS = 15 * 60 * 1000;
 const HOST_GRACE_MS = 20000;
 const AUTO_NEXT_MS = 12000; // kampanyada sonraki bombaya kadar sonuç ekranı süresi
 const RELEASE_DELAY_MS = 8000; // kopan uzman bu süre içinde dönmezse kılavuz sayfaları diğerlerine açılır
-const MODES = ['level', 'free', 'campaign'];
+const MODES = ['level', 'free', 'campaign', 'solo'];
 const NAME_MAX = 20;
 const LANGS = ['tr', 'en'];
 const NOTE_FIELDS = { serial: 12, batteries: 4, lit: 40, unlit: 40, ports: 60, text: 1500 };
@@ -29,6 +29,7 @@ function defaultSettings(lang) {
     expertsSeeTimer: false,
     showModuleNames: false,
     campaignDifficulty: 'normal', // yeni kampanya bu zorlukla başlar
+    soloDifficulty: 'normal', // tek kişilik mod zorluğu
     public: false, // ana sayfadaki açık oda listesinde görünsün mü
     title: '',
     contentLang: LANGS.includes(lang) ? lang : 'tr',
@@ -223,6 +224,7 @@ class Room {
     for (const k of ['splitManual', 'rotateRoles', 'expertsSeeTimer', 'showModuleNames', 'public']) if (typeof s[k] === 'boolean') cur[k] = s[k];
     if (typeof s.title === 'string') cur.title = cleanTitle(s.title);
     if (DIFFICULTY_IDS.includes(s.campaignDifficulty)) cur.campaignDifficulty = s.campaignDifficulty;
+    if (SOLO_IDS.includes(s.soloDifficulty)) cur.soloDifficulty = s.soloDifficulty;
     if (LANGS.includes(s.contentLang)) cur.contentLang = s.contentLang;
     this.broadcast();
   }
@@ -310,6 +312,8 @@ class Room {
       expertsSeeTimer: this.settings.expertsSeeTimer,
       showModuleNames: this.settings.showModuleNames,
       levelId: this.game.config.levelId,
+      solo: !!this.game.config.solo,
+      soloDifficulty: this.game.config.soloDifficulty,
       mode: this.settings.mode,
     };
     if (this.game.config.stage) {
@@ -376,9 +380,9 @@ class Room {
       }
       if (result.outcome === 'defused') {
         this.team.wins++;
-        if (result.levelId) {
-          this.completed.add(result.levelId);
-          rank = this.manager.leaderboard.record(result.levelId, {
+        if (result.levelId) this.completed.add(result.levelId);
+        if (result.recordId) {
+          rank = this.manager.leaderboard.record(result.recordId, {
             team: names,
             defuser: defuser?.name || '?',
             timeMs: result.timeUsedMs,
@@ -396,7 +400,8 @@ class Room {
       ...this.campaignStep(result),
     };
     this.phase = 'result';
-    if (this.settings.rotateRoles && result.outcome !== 'aborted') this.rotateDefuser();
+    // Tek kişilik modda imhacı değişmez (kılavuz da onda)
+    if (this.settings.rotateRoles && result.outcome !== 'aborted' && !this.game?.config.solo) this.rotateDefuser();
     this.io.to(this.channel).emit('game:end', this.resultPayload());
     this.broadcast();
   }

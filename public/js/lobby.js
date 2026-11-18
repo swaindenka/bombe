@@ -2,7 +2,7 @@
 
 import { t, getLang, moduleName } from './i18n.js';
 import { esc, formatDuration } from './dom.js';
-import { LEVELS, FREE_LIMITS, PRESET_IDS, FREE_PRESETS } from '/shared/levels.js';
+import { LEVELS, FREE_LIMITS, PRESET_IDS, FREE_PRESETS, SOLO_PRESETS, SOLO_IDS, soloRecordId } from '/shared/levels.js';
 import { DIFFICULTIES, DIFFICULTY_IDS } from '/shared/campaign.js';
 import { REGULAR_TYPES, NEEDY_TYPES } from '/shared/modules/index.js';
 import { VERSION } from '/shared/version.js';
@@ -39,6 +39,20 @@ function campaignLobbyHTML(room, isHost) {
       ${diffPicker}
       ${status}
       ${best?.stage ? `<p class="small muted">🏅 ${t('campaignBestLine', { n: best.stage, score: best.score })}</p>` : ''}
+    </div>`;
+}
+
+function soloLobbyHTML(room, isHost) {
+  const cur = room.settings.soloDifficulty || 'normal';
+  const p = SOLO_PRESETS[cur];
+  return `
+    <div class="campaign-box">
+      <b>👤 ${t('modeSolo')}</b>
+      <p class="small">${t('soloHint')}</p>
+      <ul class="camp-rules"><li>📖 ${t('soloRule1')}</li><li>⌨ ${t('soloRule2')}</li><li>🏆 ${t('soloRule3')}</li></ul>
+      <div class="field-label">${t('difficulty')}</div>
+      <div class="seg seg-diff">${SOLO_IDS.map((id) => `<button class="${cur === id ? 'on' : ''}" data-solodiff="${id}" ${isHost ? '' : 'disabled'}>${t('preset_' + id)}</button>`).join('')}</div>
+      <p class="small muted">💣 ${p.regular} ${t('modules')}${p.needy ? ` + ⏱${p.needy}` : ''} · ⏲ ${formatDuration(p.time * 1000)} · ✕${p.strikes}${p.events ? ' · ⚡' : ''}</p>
     </div>`;
 }
 
@@ -125,7 +139,10 @@ export function lobbyHTML(room, me) {
     </label>`;
 
   const selLevel = LEVELS.find((l) => l.id === s.levelId) || LEVELS[0];
-  const recList = room.records?.[selLevel.id] || [];
+  const soloMode = s.mode === 'solo';
+  const recKey = soloMode ? soloRecordId(s.soloDifficulty) : selLevel.id;
+  const recTitle = soloMode ? `${t('modeSolo')} · ${t('preset_' + (s.soloDifficulty || 'normal'))}` : selLevel.name[L];
+  const recList = room.records?.[recKey] || [];
   const records = recList.length
     ? `<ol class="records">${recList
         .map(
@@ -164,7 +181,7 @@ export function lobbyHTML(room, me) {
         <section class="card card-players">
           <h2>${t('players')} <small>${connected}/${room.players.length}</small></h2>
           <ul class="players">${players}</ul>
-          ${connected < 2 ? `<p class="hint-box">👋 ${t('soloWarning')}</p>` : ''}
+          ${connected < 2 && s.mode !== 'solo' ? `<p class="hint-box">👋 ${t('soloWarning')}</p>` : ''}
         </section>
 
         <section class="card card-settings">
@@ -174,8 +191,9 @@ export function lobbyHTML(room, me) {
             <button class="tab ${s.mode === 'level' ? 'on' : ''}" data-mode="level" ${dis}>${t('modeLevels')}</button>
             <button class="tab ${s.mode === 'campaign' ? 'on' : ''}" data-mode="campaign" ${dis}>🎯 ${t('modeCampaign')}</button>
             <button class="tab ${s.mode === 'free' ? 'on' : ''}" data-mode="free" ${dis}>${t('modeFree')}</button>
+            <button class="tab ${s.mode === 'solo' ? 'on' : ''}" data-mode="solo" ${dis}>👤 ${t('modeSolo')}</button>
           </div>
-          ${s.mode === 'free' ? free : s.mode === 'campaign' ? campaignLobbyHTML(room, isHost) : `<div class="levels">${levels}</div>`}
+          ${s.mode === 'free' ? free : s.mode === 'campaign' ? campaignLobbyHTML(room, isHost) : soloMode ? soloLobbyHTML(room, isHost) : `<div class="levels">${levels}</div>`}
           <div class="field-label">${t('options')}</div>
           <div class="toggles">
             ${toggle('splitManual', t('splitManual'), t('splitManualHint'))}
@@ -198,7 +216,7 @@ export function lobbyHTML(room, me) {
           <h2>${t('scoreboard')}</h2>
           <div class="team-line">${t('team')}: <b>${room.team.wins}</b> ${t('wins').toLocaleLowerCase(L)} / ${room.team.games} ${t('games').toLocaleLowerCase(L)} · <b>${room.team.points || 0}</b> ${t('points')}</div>
           <table class="stats"><thead><tr><th>${t('roomStats')}</th><th>${t('wins')}</th><th>${t('losses')}</th><th>${t('fastest')}</th></tr></thead><tbody>${statsRows}</tbody></table>
-          <h3>🏆 ${t('records')} · ${esc(selLevel.name[L])}</h3>
+          <h3>🏆 ${t('records')} · ${esc(recTitle)}</h3>
           ${records}
         </section>
       </div>
@@ -210,7 +228,9 @@ export function lobbyHTML(room, me) {
                   ? room.campaign?.run && !room.campaign.run.over
                     ? `▶ ${t('campaignContinue', { n: room.campaign.run.stage })}`
                     : `🎯 ${t('campaignStart')}`
-                  : `💣 ${t('start')}`
+                  : soloMode
+                    ? `👤 ${t('soloStart')}`
+                    : `💣 ${t('start')}`
               }</button>`
             : `<div class="waiting">${t('waitingHost')}</div>`
         }
@@ -229,9 +249,10 @@ export function bindLobby(root, getRoom, send) {
   root.addEventListener('click', (e) => {
     const room = getRoom();
     if (!room) return;
-    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang],[data-vis],[data-cdiff],[data-preset]');
+    const el = e.target.closest('[data-defuser],[data-level],[data-mode],[data-clang],[data-vis],[data-cdiff],[data-preset],[data-solodiff]');
     if (!el || el.disabled) return;
     if (el.dataset.vis) send('room:settings', { public: el.dataset.vis === '1' });
+    else if (el.dataset.solodiff) send('room:settings', { soloDifficulty: el.dataset.solodiff });
     else if (el.dataset.cdiff) send('room:settings', { campaignDifficulty: el.dataset.cdiff });
     else if (el.dataset.preset) send('room:settings', { free: FREE_PRESETS[el.dataset.preset] });
     else if (el.dataset.defuser) send('room:defuser', { playerId: el.dataset.defuser });

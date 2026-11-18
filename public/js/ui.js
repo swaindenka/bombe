@@ -20,6 +20,7 @@ export function levelChip(init) {
     const diff = c.difficulty && c.difficulty !== 'normal' ? `${DIFFICULTIES[c.difficulty]?.icon || ''} ` : '';
     return `<span class="level-chip">🎯 ${diff}${t('campaignStage')} ${c.stage}/${c.total} · ${livesHTML(c.lives, c.maxLives)}${mods ? ` · ${mods}` : ''}</span>`;
   }
+  if (init.solo) return `<span class="level-chip">👤 ${t('modeSolo')} · ${t('preset_' + init.soloDifficulty)}</span>`;
   if (!init.levelId) return init.mode === 'free' ? `<span class="level-chip">🎲 ${t('modeFree')}</span>` : '';
   const i = LEVELS.findIndex((l) => l.id === init.levelId);
   return `<span class="level-chip">🏁 ${t('levelShort')} ${i + 1}/${LEVELS.length} · ${esc(LEVELS[i]?.name[getLang()] || '')}</span>`;

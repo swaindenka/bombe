@@ -648,3 +648,49 @@ test('kampanya zorluğu odada seçilir ve yeni kampanyaya uygulanır', async () 
     await cleanup();
   }
 });
+
+test('tek kişilik mod: tek oyuncu başlatır, zorluk ayarı uygulanır, rekor zorluğa göre tutulur', async () => {
+  const { SOLO_PRESETS } = await import('../shared/levels.js');
+  const { clients, joins, room, cleanup } = await setup(1);
+  try {
+    clients[0].emit('room:settings', { mode: 'solo', soloDifficulty: 'hard' });
+    await wait(40);
+    assert.equal(room.settings.mode, 'solo');
+    assert.equal(room.settings.soloDifficulty, 'hard');
+    const init = once(clients[0], 'game:init');
+    clients[0].emit('game:start');
+    const d = await init;
+    assert.equal(d.role, 'defuser');
+    assert.equal(d.solo, true);
+    assert.equal(d.soloDifficulty, 'hard');
+    assert.equal(d.modules.filter((m) => !m.needy).length, SOLO_PRESETS.hard.regular);
+    assert.equal(d.timer.maxStrikes, SOLO_PRESETS.hard.strikes);
+    assert.equal(room.game.totalMs, SOLO_PRESETS.hard.time * 1000);
+    // Oynanış: Kolay havuzunda zamanlamaya bağlı Ritim yok, test çözücüsü hepsini çözebilir
+    clients[0].emit('game:abort');
+    await wait(40);
+    clients[0].emit('game:lobby');
+    clients[0].emit('room:settings', { soloDifficulty: 'easy' });
+    await wait(40);
+    assert.ok(!SOLO_PRESETS.easy.pool.includes('rhythm'));
+    const init2 = once(clients[0], 'game:init');
+    clients[0].emit('game:start');
+    await init2;
+    const end = once(clients[0], 'game:end', 8000);
+    await solveAll(room, clients[0]);
+    const r = await end;
+    assert.equal(r.outcome, 'defused');
+    assert.equal(r.recordId, 'solo-easy');
+    assert.equal(r.rank, 1);
+    assert.equal(room.publicState().records['solo-easy'].length, 1);
+    assert.equal(room.publicState().records['solo-hard'], undefined, 'iptal edilen tur rekor değil');
+    assert.equal(room.completed.size, 0, 'tek kişilik oyun seviye tamamlamaz');
+    assert.equal(room.defuserId, joins[0].playerId);
+    // Bilinmeyen zorluk yok sayılır
+    clients[0].emit('room:settings', { soloDifficulty: 'nope' });
+    await wait(30);
+    assert.equal(room.settings.soloDifficulty, 'easy');
+  } finally {
+    await cleanup();
+  }
+});

@@ -304,6 +304,7 @@ export class Game {
       solved: this.solvedCount,
       total: this.regularModules.length,
       levelId: this.config.levelId,
+      recordId: this.config.recordId ?? this.config.levelId, // rekor tablosu anahtarı (tek kişilik: solo-<zorluk>)
       modules: this.modules.map((m) => ({ type: m.type, needy: m.needy, solvedAtMs: m.solvedAt, strikes: m.strikes })),
     };
     this.result.score = scoreFor(this.result);

@@ -13,7 +13,7 @@ import { createRng } from '/shared/rng.js';
  * @param {number} [opts.scrambled]  kampanya koşulu "Dağınık kılavuz": sayfalar bu tohumla karışır,
  *                                   içindekiler ve arama gizlenir
  */
-export function manualHTML({ contentLang = 'tr', manual = { split: false }, scrambled = null } = {}) {
+export function manualHTML({ contentLang = 'tr', manual = { split: false }, scrambled = null, solo = false } = {}) {
   const L = getLang();
   const visible = (type) => type === 'intro' || !manual.split || manual.mine.includes(type);
   const base = scrambled ? ['intro', ...createRng(scrambled).shuffle(PAGE_ORDER.filter((p) => p !== 'intro'))] : PAGE_ORDER;
@@ -33,7 +33,7 @@ export function manualHTML({ contentLang = 'tr', manual = { split: false }, scra
     const needy = NEEDY_PAGES.includes(type);
     toc += `<li><a href="#page-${type}" class="${open ? '' : 'locked'}" data-page="${type}"><span class="toc-no">${i + 1}</span><span class="toc-name">${esc(moduleName(type, L))}</span>${needy ? ' <span class="tag">⏱</span>' : ''}${open ? '' : ' 🔒'}</a></li>`;
     const body = open
-      ? PAGES[type](L, contentLang)
+      ? PAGES[type](L, contentLang, { solo })
       : `<div class="locked-page">🔒 ${t('lockedPage', { name: esc(manual.owners?.[type] || '?') })}</div>`;
     pages += `
       <section class="page ${open ? '' : 'is-locked'}" id="page-${type}" data-page="${type}">
@@ -96,6 +96,7 @@ export function bindManual(root) {
   const filter = (q) => {
     const query = norm(q.trim());
     let first = null;
+    let titled = null; // başlığı eşleşen sayfa, metninde geçenden önce gelir
     let count = 0;
     root.querySelectorAll('.manual-toc a[data-page]').forEach((a) => {
       const hit = !query || norm(a.textContent).includes(query) || index.get(a.dataset.page)?.includes(query);
@@ -103,10 +104,11 @@ export function bindManual(root) {
       if (hit) {
         count++;
         first = first || a.dataset.page;
+        if (query && !titled && norm(a.textContent).includes(query)) titled = a.dataset.page;
       }
     });
     root.querySelector('.manual-toc')?.classList.toggle('no-match', !!query && !count);
-    return first;
+    return titled || first;
   };
   const onInput = (e) => {
     if (e.target.matches('[data-msearch]')) filter(e.target.value);
