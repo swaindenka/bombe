@@ -35,6 +35,8 @@ export const NEEDS = {
   rhythm: ['batteries', 'timer'],
   cipher: ['batteries', 'vowel'],
   logic: [],
+  gears: ['vowel'],
+  lights: ['lit'],
   homophones: [],
   coolant: [],
   passphrase: [],

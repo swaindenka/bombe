@@ -1054,3 +1054,42 @@ table.rules.compact th, table.rules.compact td { padding: 5px 8px; font-size: 14
   /* Dar ekranda kılavuz bombanın üstüne açılan bir katman olur */
   .solo-manual { position: absolute; inset: 0; flex: none; max-width: none; z-index: 6; border: 0; }
 }
+
+/* Dişli kutusu */
+.gr-svg { position: absolute; top: 22px; left: 8px; width: 184px; height: 102px; }
+.gr-gear { fill: #b9bec4; stroke: #2a2d31; stroke-width: 1.2; stroke-linejoin: round; }
+.gr-gear.first { fill: #d2c29a; }
+.gr-hub { fill: #2f343a; }
+.gr-num { font: 700 10.5px var(--mono); fill: #fff; text-anchor: middle; }
+.gr-belt { fill: none; stroke: #15171a; stroke-width: 2.4; stroke-linecap: round; }
+.gr-shaft { stroke: #2a2d31; stroke-width: 4; }
+.gr-motor { fill: #2a2e33; stroke: #15171a; stroke-width: 1.5; }
+.gr-lamp { stroke: #15171a; stroke-width: 1.5; }
+.gr-cb { fill: #fff; font-size: 7px; }
+.gr-grid { position: absolute; left: 14px; right: 14px; top: 128px; bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gr-opt { font: 700 17px var(--mono); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.gr-opt span { font: 700 20px/1 var(--body); }
+
+/* Işık paneli */
+.lp-symbol { position: absolute; top: 12px; left: 12px; width: 30px; height: 30px; border-radius: 6px; background: #111417; border: 2px solid #0a0b0d; display: flex; align-items: center; justify-content: center; }
+.lp-symbol svg { width: 22px; height: 22px; }
+.lp-symbol svg > * { fill: #8fd3ff; stroke: #8fd3ff; stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.lp-symbol svg [fill=none] { fill: none; stroke-width: 2.2; }
+.lp-grid { position: absolute; top: 26px; left: 50%; margin-left: -58px; width: 116px; height: 116px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; background: #121417; border-radius: 8px; border: 2px solid #0a0b0d; box-sizing: border-box; }
+.lp-cell { border-radius: 5px; border: 2px solid #0b0c0e; background: #2b2a26; cursor: pointer; padding: 0; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .35); }
+.lp-cell.on { background: radial-gradient(circle at 50% 40%, #fff8d6, #ffd447 70%); box-shadow: 0 0 10px rgba(255, 212, 71, .7), inset 0 -3px 0 rgba(0, 0, 0, .15); }
+.lp-cell:active { transform: translateY(1px); }
+.lp-submit { position: absolute; bottom: 14px; left: 50px; right: 50px; height: 30px; }
+/* Kılavuz: ışık paneli hedefleri ve semboller */
+.panel-ico { width: 30px; height: 30px; vertical-align: middle; }
+.panel-ico > * { fill: var(--ink); stroke: var(--ink); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.panel-ico [fill=none] { fill: none; stroke-width: 2.2; }
+.lp-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin: 10px 0 14px; }
+.lp-target { background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lp-target span { font: 700 13px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.mini3 { display: grid; grid-template-columns: repeat(3, 16px); gap: 3px; }
+.mini3 i { width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid var(--ink); background: #fff; }
+.mini3 i.on { background: #f2b705; }
+.mini3.small { grid-template-columns: repeat(3, 12px); }
+.mini3.small i { width: 12px; height: 12px; }
+.mini3 i.x { background: #d7263d; }

@@ -563,3 +563,65 @@ test('kampanya koşulları oyuna yansır: ödül süresi, hassas devre, dalgalan
     g.destroy();
   }
 });
+
+test('dişli kutusu: kılavuzdaki kurallar, tek doğru düğme, örnek', async () => {
+  const { gearAnswer, MOTOR_RPM, linkFlips } = await import('../shared/modules/gears.js');
+  const noVowel = { serial: 'BC12D7', batteryHolders: [], indicators: [], portPlates: [] };
+  // Kılavuz örneği: kırmızı (60), 12 –değiyor– 20 –düz kayış– 8 –değiyor– 30 → ↻ 24
+  assert.deepEqual(gearAnswer({ motor: 'red', teeth: [12, 20, 8, 30], links: ['mesh', 'belt', 'mesh'] }, noVowel), { dir: 'cw', rpm: 24 });
+  assert.equal(linkFlips('cross'), true);
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    const s = MODULES.gears.generate(rng, e);
+    // Kuralı metindeki gibi adım adım uygula: dişli dişli yön ve hız
+    let dir = serialHasVowel(e) ? -1 : 1;
+    let rpm = MOTOR_RPM[s.motor];
+    for (let i = 1; i < s.teeth.length; i++) {
+      if (s.links[i - 1] !== 'belt') dir = -dir;
+      rpm = (rpm * s.teeth[i - 1]) / s.teeth[i];
+    }
+    const want = { dir: dir === 1 ? 'cw' : 'ccw', rpm };
+    assert.deepEqual(gearAnswer(s, e), want);
+    assert.ok(Number.isInteger(rpm) && rpm !== MOTOR_RPM[s.motor]);
+    const { gearSpan, GEAR_MAX_SPAN } = await import('../shared/modules/gears.js');
+    assert.ok(gearSpan(s.teeth, s.links) <= GEAR_MAX_SPAN, 'dizilim modüle sığar');
+    assert.equal(s.options.filter((o) => o.dir === want.dir && o.rpm === want.rpm).length, 1, 'tek doğru düğme');
+    assert.equal(new Set(s.options.map((o) => o.dir + o.rpm)).size, 4);
+    const wrong = s.options.findIndex((o) => !(o.dir === want.dir && o.rpm === want.rpm));
+    assert.deepEqual(MODULES.gears.action(s, { press: wrong }, { edgework: e }), { strike: true });
+  }
+});
+
+test('ışık paneli: hedef, ters çevirme, komşu kuralı ve kılavuzdaki kovalama yöntemi her bombayı çözer', async () => {
+  const { PANEL_TARGETS, panelTarget, pressMask, press, chaseTable } = await import('../shared/modules/lights.js');
+  // Ortadaki düğme artı şeklinde 5 lambayı, köşe 3 lambayı değiştirir
+  assert.deepEqual(pressMask(4).sort(), [1, 3, 4, 5, 7]);
+  assert.deepEqual(pressMask(0).sort(), [0, 1, 3]);
+  const pats = Object.values(PANEL_TARGETS).flatMap((t) => [t.join(''), t.map((v) => 1 - v).join('')]);
+  assert.equal(new Set(pats).size, pats.length, 'hedefler ve tersleri birbirine karışmaz');
+  const table = chaseTable();
+  assert.equal(Object.keys(table).length, 7, 'alt satırın her yanlış deseni tabloda');
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    const s = MODULES.lights.generate(rng, e);
+    const t = PANEL_TARGETS[s.symbol];
+    assert.deepEqual(panelTarget(s.symbol, e), litIndicatorCount(e) > 0 ? t.map((v) => 1 - v) : t);
+    assert.ok(!JSON.stringify(MODULES.lights.view(s)).includes('target'));
+    assert.deepEqual(MODULES.lights.action(s, { submit: true }), { strike: true }, 'başlangıç hedef değil');
+    // Kılavuzdaki yöntem: yanlışların altına bas (üst, orta satır), alt satırı tablodan düzelt, tekrar kovala
+    const wrongAt = (i) => s.cells[i] !== s.target[i];
+    const chase = () => {
+      for (const row of [0, 1]) for (let x = 0; x < 3; x++) if (wrongAt(row * 3 + x)) MODULES.lights.action(s, { press: (row + 1) * 3 + x });
+    };
+    chase();
+    const bottom = [6, 7, 8].map((i) => (wrongAt(i) ? 1 : 0)).join('');
+    if (bottom !== '000') {
+      for (const x of table[bottom]) MODULES.lights.action(s, { press: x });
+      chase();
+    }
+    assert.deepEqual(MODULES.lights.action(s, { submit: true }), { solved: true, changed: true }, `kovalama çözmedi (seed ${seed})`);
+  }
+  assert.deepEqual(press([0, 0, 0, 0, 0, 0, 0, 0, 0], 8), [0, 0, 0, 0, 0, 1, 0, 1, 1]);
+});

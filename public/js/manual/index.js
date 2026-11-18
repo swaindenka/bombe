@@ -14,6 +14,8 @@ import gauges from './gauges.js';
 import rhythm from './rhythm.js';
 import cipher from './cipher.js';
 import logic from './logic.js';
+import gears from './gears.js';
+import lights from './lights.js';
 import homophones from './homophones.js';
 import coolant from './coolant.js';
 import passphrase from './passphrase.js';
@@ -22,6 +24,6 @@ import verify from './verify.js';
 import pressure from './pressure.js';
 
 // Sayfa sırası modüllerin tanıtılma sırasını izler (kolaydan zora), sürekli ilgi isteyenler sonda
-export const PAGES = { intro, wires, switches, tiles, glyphs, arrows, maze, scale, patch, elevator, stroop, safe, gauges, rhythm, cipher, logic, homophones, coolant, passphrase, radio, verify, pressure };
+export const PAGES = { intro, wires, switches, tiles, glyphs, arrows, maze, scale, patch, elevator, stroop, safe, gauges, rhythm, cipher, logic, gears, lights, homophones, coolant, passphrase, radio, verify, pressure };
 export const PAGE_ORDER = Object.keys(PAGES);
 export const NEEDY_PAGES = ['coolant', 'passphrase', 'radio', 'verify', 'pressure'];

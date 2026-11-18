@@ -65,7 +65,13 @@ export default (L) => {
     ${warn(
       L,
       tr
-        ? ['Birden çok doğru dizilim olabilir; biri yeter. Lamba siz TEST’e basana kadar hiçbir şey göstermez.', 'B girişi iki kapıya birden gider.']
-        : ['Several settings may work; any one will do. The lamp shows nothing until TEST.', 'Input B feeds both of the first two gates.']
+        ? [
+            '<b>Sondan başa düşünün:</b> sağ kapının istenen çıkışı vermesi için üst ve alt kapıdan ne gelmesi gerektiğini bulun, sonra o kapıları besleyen A, B, C’yi seçin. Önce B’ye karar verin; iki kapıya birden gider.',
+            'Birden çok doğru dizilim olabilir; biri yeter. Lamba siz TEST’e basana kadar hiçbir şey göstermez.',
+          ]
+        : [
+            '<b>Work backwards:</b> find what the top and bottom gates must output for the right gate to give the required result, then pick A, B, C to feed them. Decide B first; it feeds both gates.',
+            'Several settings may work; any one will do. The lamp shows nothing until TEST.',
+          ]
     )}`;
 };

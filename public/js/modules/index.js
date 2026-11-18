@@ -18,6 +18,8 @@ import pressure from './pressure.js';
 import scale from './scale.js';
 import elevator from './elevator.js';
 import logic from './logic.js';
+import gears from './gears.js';
+import lights from './lights.js';
 import verify from './verify.js';
 
 export const RENDERERS = {
@@ -37,6 +39,8 @@ export const RENDERERS = {
   scale,
   elevator,
   logic,
+  gears,
+  lights,
   coolant,
   passphrase,
   radio,

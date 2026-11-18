@@ -14,6 +14,8 @@ import homophones from './homophones.js';
 import scale from './scale.js';
 import elevator from './elevator.js';
 import logic from './logic.js';
+import gears from './gears.js';
+import lights from './lights.js';
 import coolant from './coolant.js';
 import passphrase from './passphrase.js';
 import radio from './radio.js';
@@ -37,6 +39,8 @@ export const MODULES = {
   scale,
   elevator,
   logic,
+  gears,
+  lights,
   coolant,
   passphrase,
   radio,
@@ -48,7 +52,7 @@ export const MODULES = {
 export const TIERS = {
   1: ['wires', 'switches', 'tiles', 'glyphs', 'arrows'],
   2: ['maze', 'scale', 'patch', 'elevator', 'stroop', 'safe', 'gauges'],
-  3: ['rhythm', 'cipher', 'logic', 'homophones'],
+  3: ['rhythm', 'cipher', 'logic', 'gears', 'lights', 'homophones'],
 };
 export const NEEDY_TIERS = {
   1: ['coolant', 'passphrase'],
