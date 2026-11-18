@@ -21,6 +21,7 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
   - Zorluk eğrisi sabittir: bölüm ilerledikçe modül sayısı artar, süre kısalır, zor modüller ve koşullar açılır. Bir kampanyada aynı modül iki kez öne çıkmaz.
   - Takımın 3 canı var (Uzman zorlukta 2). İmha edince sonraki bölümün brifingi ve geri sayımı gösterilir, bölüm kendiliğinden başlar. Patlarsa 1 can gider ve bölüm *farklı bir bombayla* tekrar gelir. Canlar biterse kampanya biter, 12. bölüm geçilirse operasyon tamamlanır.
   - Oda sahibi "Şimdi başla", "Durdur" ve "Yeni kampanya" diyebilir. Odadaki en iyi kampanya sonucu saklanır.
+- **Tek kişilik mod:** Arkadaşın yoksa ana sayfadaki **👤 Tek başına oyna** düğmesiyle (ya da lobideki **Tek kişi** sekmesinden) oynanır. Bombayı ve kılavuzu aynı anda görürsün: bomba solda, kılavuz sağda (**M** ile aç/kapa, telefonda bombanın üstüne açılır). Kolay / Normal / Zor / Uzman zorlukları var; tek kişi hem bakıp hem okuduğu için süreler daha uzundur ve her zorluğun kendi rekor listesi tutulur. Odaya biri katılırsa uzman olarak yardım edebilir.
 - **Modül adları (isteğe bağlı):** Lobideki "Modül adlarını göster" seçeneği açıkken imhacının bombasında her modülün altında, kılavuzdaki başlıkla aynı adı taşıyan bir etiket görünür. Yeni başlayanlar için idealdir.
 - **12 seviye ve serbest mod:** Seviyeler modülleri kademeli tanıtır; her seviye en fazla 2–3 yeni şey getirir ve lobide "Yeni:" rozetiyle gösterir. Zorluk düzgün artar: 3 modülden 9 modüle çıkılırken modül başına süre ~100 sn'den ~50 sn'ye iner, son iki seviyede hata hakkı 2'dir. Tamamlanan seviyeler ✓ ile işaretlenir. Serbest modda süre, modül sayısı, hata hakkı ve modül havuzu seçilir; **Kolay / Normal / Zor / Uzman** düğmeleri bunları tek tıkla doldurur.
 - **Açık odalar:** Oda kuran kişi odasının herkese açık mı (ana sayfadaki listede görünür) yoksa gizli mi (sadece kodla katılınır) olacağını oda kurarken ya da lobide 🌐/🔒 düğmesiyle seçer ve isteğe bağlı bir oda adı verir. Ana sayfada açık odalar; sahibi, oyuncu sayısı, durumu (lobide/oyunda), modu ve bomba diliyle canlı listelenir ve tek tıkla katılınır. Varsayılan gizlidir.
@@ -38,7 +39,7 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 - **Skor tablosu:** Oda içi istatistikler, takım puanı ve seviye başına en hızlı imha rekorları.
 - **Ses tasarımı:** Her etkileşimin kendi sesi var (kablo kesme, şalter, kadran, fiş). Müzik katmanlıdır: süre azaldıkça arpej ve gerilim tonu devreye girer, hata aldıkça tempo artar. Son 10 saniyede bip sesi, lobide yumuşak bir ambiyans çalar. Hepsi kodla üretilir; ana ses, müzik ve efekt seviyeleri ayrı ayarlanır.
 - **Erişilebilirlik:** Renk körü etiketleri (renkli parçaların üzerine KI/MA/YE/SA gibi kısaltmalar) ve "efektleri azalt" seçeneği.
-- **Kısayollar:** Boşluk = bombayı çevir, E = kenarlar, ok tuşları = imlecin altındaki labirent/pusula, `/` = kılavuzda ara.
+- **Kısayollar:** Boşluk = bombayı çevir, E = kenarlar, M = kılavuz (tek kişilik mod), ok tuşları = imlecin altındaki labirent/pusula, `/` = kılavuzda ara.
 - **Türkçe + İngilizce:** Arayüz dili kişiye özel, bombadaki kelimelerin dili oda ayarı.
 - **Mobil uyumlu kılavuz:** Uzmanlar kılavuzu telefondan okuyabilir.
 

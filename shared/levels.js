@@ -56,6 +56,17 @@ export const FREE_PRESETS = {
 };
 export const PRESET_IDS = Object.keys(FREE_PRESETS);
 
+// TEK KİŞİLİK MOD: tek oyuncu hem bombayı hem kılavuzu görür. Kılavuzla bomba arasında gidip
+// geldiği için süreler cömerttir. Her zorluğun kendi rekor listesi vardır (solo-<zorluk>).
+export const SOLO_PRESETS = {
+  easy: { time: 480, regular: 4, needy: 0, strikes: 4, events: false, pool: [...TIERS[1], ...TIERS[2]], needyPool: [] },
+  normal: { time: 540, regular: 5, needy: 1, strikes: 3, events: false, pool: REGULAR_TYPES, needyPool: NEEDY_TIERS[1] },
+  hard: { time: 600, regular: 7, needy: 1, strikes: 3, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+  expert: { time: 600, regular: 9, needy: 2, strikes: 2, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+};
+export const SOLO_IDS = Object.keys(SOLO_PRESETS);
+export const soloRecordId = (id) => `solo-${SOLO_PRESETS[id] ? id : 'normal'}`;
+
 export const DEFAULT_FREE = {
   time: 300,
   regular: 5,
@@ -107,6 +118,11 @@ export function bombConfig(settings) {
       events: lv.events,
       introduces: lv.introduces,
     };
+  }
+  if (settings.mode === 'solo') {
+    const id = SOLO_PRESETS[settings.soloDifficulty] ? settings.soloDifficulty : 'normal';
+    const p = SOLO_PRESETS[id];
+    return { levelId: null, recordId: soloRecordId(id), solo: true, soloDifficulty: id, introduces: [], ...p, pool: p.pool.slice(), needyPool: p.needyPool.slice() };
   }
   const f = sanitizeFree(settings.free);
   return { levelId: null, introduces: [], ...f };

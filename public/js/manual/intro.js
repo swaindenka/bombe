@@ -19,13 +19,17 @@ function needsTable(L) {
     <p class="small muted">${L === 'tr' ? 'Listede olmayan modüller kasa bilgisi istemez.' : 'Modules not listed need no casing info.'}</p>`;
 }
 
-export default (L) => {
+export default (L, _CL, { solo = false } = {}) => {
   const tr = L === 'tr';
+  // Tek kişilik modda bombayı ve kılavuzu aynı kişi görür
+  const soloLead = tr
+    ? '<p class="lead">👤 <b>Tek kişilik mod:</b> bombayı da kılavuzu da sen görüyorsun. Kılavuz cevabı vermez, <b>kuralı</b> verir: modüle bak, kuralı uygula, hamleni yap.</p>'
+    : '<p class="lead">👤 <b>Solo mode:</b> you see both the bomb and the manual. The manual never hands you the answer; it gives you the <b>rule</b>: look at the module, apply the rule, act.</p>';
   const lit = '<span class="ind-sample lit">●</span>&nbsp;ZET';
   const unlit = '<span class="ind-sample">●</span>&nbsp;KAV';
   if (tr)
     return `
-    <p class="lead">Bu kılavuz bombayı <b>göremeyen</b> uzmanlar içindir. Kılavuz size cevabı vermez; <b>kuralı</b> verir. İmhacı gördüğünü anlatır, siz kuralı uygulayıp ne yapacağını söylersiniz. ${mark('İmhacı bu kılavuza bakamaz.')}</p>
+    ${solo ? soloLead : `<p class="lead">Bu kılavuz bombayı <b>göremeyen</b> uzmanlar içindir. Kılavuz size cevabı vermez; <b>kuralı</b> verir. İmhacı gördüğünü anlatır, siz kuralı uygulayıp ne yapacağını söylersiniz. ${mark('İmhacı bu kılavuza bakamaz.')}</p>`}
 
     <h3>Bomba nasıl çalışır?</h3>
     <ul>
@@ -60,7 +64,7 @@ export default (L) => {
     ${example(L, 'İmhacıya önce kenarları (<b>E</b> tuşu) okutun; seri numarasını, pilleri, yanan göstergeleri ve portları <b>ortak notlara</b> yazın. Bu bilgiler bomba boyunca değişmez.', 'İlk 30 saniye')}
     ${warn(L, ['Pil yuvası değil pil; port plakası değil port sayılır.', 'İmhacıya yorum değil, gördüğünü sorun: "Kaç tane?", "Hangi renk?", "Yukarıdan kaçıncı?"'])}`;
   return `
-    <p class="lead">This manual is for the experts who <b>cannot see</b> the bomb. It never hands you the answer; it gives you the <b>rule</b>. The defuser describes what they see, you apply the rule and tell them what to do. ${mark('The defuser may not read this manual.')}</p>
+    ${solo ? soloLead : `<p class="lead">This manual is for the experts who <b>cannot see</b> the bomb. It never hands you the answer; it gives you the <b>rule</b>. The defuser describes what they see, you apply the rule and tell them what to do. ${mark('The defuser may not read this manual.')}</p>`}
 
     <h3>How the bomb works</h3>
     <ul>

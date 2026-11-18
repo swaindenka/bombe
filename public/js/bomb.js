@@ -7,6 +7,7 @@ import { sound } from './audio.js';
 import { socket } from './net.js';
 import { barControls, handleBarControl, countdownOverlay, pauseOverlayHTML, setPauseButton, levelChip, campaignIntroHTML } from './ui.js';
 import { reportError } from './errors.js';
+import { manualHTML, bindManual } from './manual.js';
 
 // Tanınmayan modül (eski önbellekli istemci) bütün ekranı çökertmesin
 const UNKNOWN = { render: () => `<div class="mod-unknown">⟳<small>${t('reloadPage')}</small></div>` };
@@ -57,8 +58,11 @@ export class DefuserView {
     this.paused = !!init.timer.paused;
     this.pausedAt = performance.now();
     this.hover = null;
+    // Tek kişilik mod: imhacı kılavuzu da görür (sağ panel, M ile aç/kapa)
+    this.solo = !!init.solo;
 
     this.render();
+    if (this.solo) this.disposeManual = bindManual(this.$('#soloManual'));
     this.mountAll();
     this.bind();
     this.fit();
@@ -82,9 +86,10 @@ export class DefuserView {
     this.root.innerHTML = `
       <div class="game game-defuser">
         <header class="game-bar">
-          <div class="bar-left"><span class="role-badge r-defuser">💣 ${t('youAreDefuser')}</span>${levelChip(this.init)}<span class="bar-note">${t('noPeeking')}</span></div>
+          <div class="bar-left"><span class="role-badge r-defuser">💣 ${t('youAreDefuser')}</span>${levelChip(this.init)}<span class="bar-note">${t(this.solo ? 'soloNote' : 'noPeeking')}</span></div>
           <div class="bar-right">${barControls(this.isHost, { paused: this.paused })}</div>
         </header>
+        <div class="solo-row ${this.solo ? 'with-manual' : ''} ${this.solo && window.innerWidth < 760 ? 'manual-closed' : ''}" id="soloRow">
         <main class="stage" id="stage">
           <div class="bomb-scaler" id="scaler" style="width:${DESIGN_W}px;height:${DESIGN_H}px">
             <div class="bomb-view show-front" id="bombView">
@@ -96,11 +101,14 @@ export class DefuserView {
             </div>
           </div>
         </main>
+        ${this.solo ? `<aside class="manual-wrap solo-manual" id="soloManual">${manualHTML({ contentLang: this.lang, solo: true })}</aside>` : ''}
+        </div>
         <footer class="controls">
           <button class="btn" data-ctl="flip">⟲ ${t('flip')}</button>
           <div class="face-dots" aria-hidden="true"><i class="on" data-face="front"></i><i data-face="back"></i><i data-face="edges"></i></div>
           <span class="face-label" id="faceLabel">${t('front')}</span>
           <button class="btn" data-ctl="edges">▣ ${t('edges')}</button>
+          ${this.solo ? `<button class="btn" data-ctl="manual">📖 ${t('manual')} <kbd>M</kbd></button>` : ''}
           <span class="hint">${t('keysHint')}</span>
         </footer>
         <div class="fx-flash" id="fxFlash"></div>
@@ -218,6 +226,7 @@ export class DefuserView {
         if (handleBarControl(ctl, ctlBtn)) return;
         if (ctl === 'flip') this.flip();
         else if (ctl === 'edges') this.toggleEdges();
+        else if (ctl === 'manual') this.toggleManual();
         else if (ctl === 'snooze') this.snooze();
         return;
       }
@@ -247,6 +256,8 @@ export class DefuserView {
       if (e.code === 'Space' || e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         this.flip();
+      } else if (this.solo && (e.key === 'm' || e.key === 'M')) {
+        this.toggleManual();
       } else if (e.key === 'e' || e.key === 'E') {
         this.toggleEdges();
       } else if (KEY_DIR[e.key] && this.hover && this.canAct()) {
@@ -310,6 +321,13 @@ export class DefuserView {
   flip() {
     if (this.view === 'edges') this.setView(this.lastFace);
     else this.setView(this.view === 'front' ? 'back' : 'front');
+  }
+
+  toggleManual() {
+    const row = this.$('#soloRow');
+    if (!row) return;
+    row.classList.toggle('manual-closed');
+    sound.act('toggle');
   }
 
   toggleEdges() {
@@ -450,6 +468,10 @@ export class DefuserView {
     } else if (ev.type === 'alarm') {
       this.pulse('#fxAlarm', 'on', ev.duration);
       sound.alarm(ev.duration);
+    } else if (ev.type === 'glitch' && this.solo) {
+      // Tek kişilik modda kılavuz imhacıda: parazit onun kılavuzuna girer
+      sound.glitch(ev.duration);
+      this.pulse('#soloManual', 'glitch', ev.duration);
     } else if (ev.type === 'surge' && ev.moduleId) {
       sound.glitch(Math.min(ev.duration, 1500));
       this.pulse(`.module[data-id="${ev.moduleId}"]`, 'surge', ev.duration);
@@ -495,6 +517,7 @@ export class DefuserView {
     this.stopCountdown?.();
     this.timeouts.forEach(clearTimeout);
     this.mounts.forEach((fn) => fn?.());
+    this.disposeManual?.();
     this.root.removeEventListener('click', this.onClick);
     this.root.removeEventListener('pointerover', this.onOver);
     window.removeEventListener('keydown', this.onKey);
