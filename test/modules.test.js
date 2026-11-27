@@ -725,3 +725,107 @@ test('sayı yolu: kılavuzdaki yön tablosu, port kuralı, kenardan sarma, iki a
     assert.ok(!JSON.stringify(MODULES.numpath.view(s)).includes('"end'));
   }
 });
+
+test('direnç devresi: renk kodu, seri/paralel kuralları, yanan gösterge, tek doğru düğme', async () => {
+  const { bandsOf, valueOf, circuitCurrent, BAND_COLORS } = await import('../shared/modules/circuit.js');
+  assert.deepEqual(bandsOf(47), ['yellow', 'violet', 'black']);
+  assert.deepEqual(bandsOf(680), ['blue', 'grey', 'brown']);
+  assert.equal(valueOf(['brown', 'black', 'brown']), 100);
+  const noLit = { serial: 'BC12D7', batteryHolders: [], indicators: [], portPlates: [] };
+  const lit = { ...noLit, indicators: [{ code: 'ZET', lit: true }] };
+  // Kılavuz örnekleri
+  assert.equal(circuitCurrent({ topo: 'sp', values: [40, 80, 80], volts: 6 }, noLit), 75);
+  assert.equal(circuitCurrent({ topo: 'ps', values: [30, 60, 90], volts: 9 }, noLit), 200);
+  assert.equal(circuitCurrent({ topo: 'sp', values: [40, 80, 80], volts: 6 }, lit), 150, 'yanan gösterge gerilimi iki katına çıkarır');
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    const s = MODULES.circuit.generate(rng, e);
+    // Kılavuzdaki gibi: bantları oku, düzeni uygula, Ohm yasası
+    const [r1, r2, r3] = s.bands.map((b) => (BAND_COLORS.indexOf(b[0]) * 10 + BAND_COLORS.indexOf(b[1])) * (b[2] === 'brown' ? 10 : 1));
+    const par = (a, b) => (a * b) / (a + b);
+    const R = s.topo === 'sp' ? r1 + par(r2, r3) : par(r1 + r2, r3);
+    const V = s.volts * (litIndicatorCount(e) > 0 ? 2 : 1);
+    const mA = (V * 1000) / R;
+    assert.ok(Number.isInteger(R) && Number.isInteger(mA), 'ara sonuçlar tam sayı');
+    assert.ok(s.bands.every((b) => b[2] === 'black' || b[2] === 'brown'));
+    assert.equal(circuitCurrent(s, e), mA);
+    assert.equal(s.options.filter((o) => o === mA).length, 1, 'tek doğru düğme');
+    assert.equal(new Set(s.options).size, 4);
+    assert.ok(!('values' in MODULES.circuit.view(s)), 'görünüm değerleri hazır vermez');
+    const wrong = s.options.findIndex((o) => o !== mA);
+    assert.deepEqual(MODULES.circuit.action(s, { press: wrong }, { edgework: e }), { strike: true });
+  }
+});
+
+test('ikiz labirent: duvarda bekleme, ayna kuralı, hamle sınırı, birlikte düşünmeyi gerektiren bulmacalar', async () => {
+  const { TWIN_MAZES, TWIN_SIZE, stepDot, rightDir, twinPath, TWIN_SLACK } = await import('../shared/modules/twinmaze.js');
+  const noLit = { serial: 'BC12D7', batteryHolders: [], indicators: [], portPlates: [] };
+  const lit = { ...noLit, indicators: [{ code: 'ZET', lit: true }] };
+  assert.equal(rightDir('W', noLit), 'W');
+  assert.equal(rightDir('W', lit), 'E');
+  assert.equal(rightDir('N', lit), 'N');
+  // Kenara doğru giden nokta yerinde kalır
+  assert.deepEqual(stepDot(0, { x: 0, y: 0 }, 'W'), { x: 0, y: 0 });
+  assert.deepEqual(stepDot(0, { x: 0, y: 0 }, 'N'), { x: 0, y: 0 });
+  // Her labirentin bütün hücreleri birbirine ulaşır
+  for (let m = 0; m < TWIN_MAZES.length; m++) {
+    const seen = new Set(['0,0']);
+    const q = [{ x: 0, y: 0 }];
+    while (q.length) {
+      const p = q.shift();
+      for (const d of ['N', 'E', 'S', 'W']) {
+        const n = stepDot(m, p, d);
+        if (!seen.has(`${n.x},${n.y}`)) {
+          seen.add(`${n.x},${n.y}`);
+          q.push(n);
+        }
+      }
+    }
+    assert.equal(seen.size, TWIN_SIZE * TWIN_SIZE, `labirent ${m}`);
+  }
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    const s = MODULES.twinmaze.generate(rng, e);
+    const path = twinPath(s, e);
+    assert.ok(path.length >= 6 && path.length <= 12);
+    assert.equal(s.limit, path.length + TWIN_SLACK);
+    assert.notEqual(s.mazes[0], s.mazes[1]);
+    assert.ok(!JSON.stringify(MODULES.twinmaze.view(s)).includes('mazes'), 'görünüm labirent numarasını yalnızca Roma rakamıyla verir');
+    // Sınır aşılırsa hata ve başa dönüş: hep yerinde sayan bir yönü bul ya da rastgele bas
+    const copy = JSON.parse(JSON.stringify(s));
+    let r = {};
+    for (let i = 0; i < copy.limit && !r.strike && !r.solved; i++) r = MODULES.twinmaze.action(copy, { move: path[0] === 'N' ? 'S' : 'N' }, { edgework: e });
+    if (r.strike) {
+      assert.deepEqual(copy.pos, copy.start);
+      assert.equal(copy.moves, 0);
+    }
+    // En kısa yolla çözülür
+    for (const d of path) r = MODULES.twinmaze.action(s, { move: d }, { edgework: e });
+    assert.deepEqual(r, { solved: true, changed: true });
+  }
+});
+
+test('uzman kademesi yalnızca son seviyede ve kampanyanın son bölümlerinde çıkar', async () => {
+  const { TIERS, STANDARD_TYPES } = await import('../shared/modules/index.js');
+  const { campaignStage, EXPERT_STAGE } = await import('../shared/campaign.js');
+  const { FREE_PRESETS, SOLO_PRESETS, DEFAULT_FREE } = await import('../shared/levels.js');
+  const hard = TIERS[4];
+  for (const lv of LEVELS) {
+    const has = hard.some((t) => lv.pool.includes(t));
+    assert.equal(has, lv.id === 'l12', `${lv.id} uzman kademesi`);
+  }
+  assert.deepEqual(LEVELS.find((l) => l.id === 'l12').introduces.sort(), [...hard].sort());
+  for (let seed = 1; seed <= 60; seed++) {
+    for (let s = 1; s <= 12; s++) {
+      const c = campaignStage(seed * 31, s);
+      if (s < EXPERT_STAGE) assert.ok(!c.pool.some((t) => hard.includes(t)), `bölüm ${s}`);
+      if (s === EXPERT_STAGE) assert.ok(hard.includes(c.featured), 'uzman kademesi 10. bölümde öne çıkar');
+    }
+  }
+  // Hazır ayarlardan yalnızca "Uzman" bunları içerir; serbest mod varsayılanı içermez
+  assert.ok(!hard.some((t) => FREE_PRESETS.normal.pool.includes(t) || FREE_PRESETS.hard.pool.includes(t) || SOLO_PRESETS.hard.pool.includes(t)));
+  assert.ok(hard.every((t) => FREE_PRESETS.expert.pool.includes(t) && SOLO_PRESETS.expert.pool.includes(t)));
+  assert.deepEqual(DEFAULT_FREE.pool, STANDARD_TYPES);
+});

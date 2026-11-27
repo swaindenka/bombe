@@ -40,6 +40,8 @@ export const NEEDS = {
   numpath: ['ports'],
   codebreaker: [],
   nonogram: [],
+  circuit: ['lit'],
+  twinmaze: ['lit'],
   homophones: [],
   coolant: [],
   passphrase: [],

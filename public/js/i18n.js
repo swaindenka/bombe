@@ -509,8 +509,8 @@ const STR = {
 
 // Bomba üzerindeki kısa etiketler (bomba dilinde)
 const BOMB_STR = {
-  tr: { submit: 'ONAY', enter: 'GİR', press: 'BAS', serial: 'SERİ NO.', test: 'TEST', send: 'GÖNDER', vent: 'TAHLİYE', channel: 'KANAL', weigh: 'TART', try: 'DENE', steps: 'ADIM' },
-  en: { submit: 'SUBMIT', enter: 'ENTER', press: 'PRESS', serial: 'SERIAL NO.', test: 'TEST', send: 'SEND', vent: 'VENT', channel: 'CH', weigh: 'WEIGH', try: 'TRY', steps: 'STEPS' },
+  tr: { submit: 'ONAY', enter: 'GİR', press: 'BAS', serial: 'SERİ NO.', test: 'TEST', send: 'GÖNDER', vent: 'TAHLİYE', channel: 'KANAL', weigh: 'TART', try: 'DENE', steps: 'ADIM', moves: 'HAMLE' },
+  en: { submit: 'SUBMIT', enter: 'ENTER', press: 'PRESS', serial: 'SERIAL NO.', test: 'TEST', send: 'SEND', vent: 'VENT', channel: 'CH', weigh: 'WEIGH', try: 'TRY', steps: 'STEPS', moves: 'MOVES' },
 };
 
 const MODULE_NAMES = {
@@ -537,6 +537,8 @@ const MODULE_NAMES = {
     numpath: 'Sayı Yolu',
     codebreaker: 'Kod Kırıcı',
     nonogram: 'Resim Bulmacası',
+    circuit: 'Direnç Devresi',
+    twinmaze: 'İkiz Labirent',
     coolant: 'Soğutucu',
     passphrase: 'Parola',
     radio: 'Telsiz',
@@ -566,6 +568,8 @@ const MODULE_NAMES = {
     numpath: 'Number Path',
     codebreaker: 'Codebreaker',
     nonogram: 'Picture Puzzle',
+    circuit: 'Resistor Circuit',
+    twinmaze: 'Twin Maze',
     coolant: 'Coolant',
     passphrase: 'Passphrase',
     radio: 'Radio',
