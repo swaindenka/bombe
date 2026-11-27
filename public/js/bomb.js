@@ -28,7 +28,7 @@ const DESIGN_H = 510;
 const SLOTS_PER_FACE = 6;
 
 // Hareket türüne göre anlık ses
-const ACT_SFX = { cut: 'snip', toggle: 'toggle', rotate: 'dial', tune: 'dial', move: 'step', connect: 'plug', unplug: 'plug', submit: 'heavy', enter: 'heavy', test: 'heavy', send: 'heavy', vent: 'heavy', weigh: 'heavy' };
+const ACT_SFX = { cut: 'snip', toggle: 'toggle', rotate: 'dial', tune: 'dial', move: 'step', connect: 'plug', unplug: 'plug', submit: 'heavy', enter: 'heavy', test: 'heavy', send: 'heavy', vent: 'heavy', weigh: 'heavy', try: 'heavy', cycle: 'toggle' };
 const sfxFor = (action) => ACT_SFX[Object.keys(action)[0]] || 'press';
 
 // Ok tuşlarıyla oynanabilen modüller

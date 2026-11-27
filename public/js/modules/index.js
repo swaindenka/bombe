@@ -20,6 +20,9 @@ import elevator from './elevator.js';
 import logic from './logic.js';
 import gears from './gears.js';
 import lights from './lights.js';
+import numpath from './numpath.js';
+import codebreaker from './codebreaker.js';
+import nonogram from './nonogram.js';
 import verify from './verify.js';
 
 export const RENDERERS = {
@@ -41,6 +44,9 @@ export const RENDERERS = {
   logic,
   gears,
   lights,
+  numpath,
+  codebreaker,
+  nonogram,
   coolant,
   passphrase,
   radio,

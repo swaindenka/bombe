@@ -14,6 +14,9 @@ const L5 = [...L4, 'elevator', 'stroop'];
 const L6 = [...L5, 'safe', 'gauges'];
 const L7 = [...L6, 'rhythm', 'cipher'];
 const L8 = [...L7, 'logic', 'homophones'];
+const L9 = [...L8, 'gears', 'lights'];
+const L10 = [...L9, 'numpath'];
+const L11 = [...L10, 'codebreaker', 'nonogram'];
 
 export const MAX_SLOTS = 11; // 12 yuvadan biri sayaç
 
@@ -26,9 +29,9 @@ export const LEVELS = [
   { id: 'l6', name: { tr: 'Sıcak Masa', en: 'Hot Desk' }, regular: 5, needy: 1, time: 360, strikes: 3, pool: L6, needyPool: N1, events: false },
   { id: 'l7', name: { tr: 'Gece Vardiyası', en: 'Night Shift' }, regular: 6, needy: 1, time: 390, strikes: 3, pool: L7, needyPool: [...N1, 'radio'], events: true },
   { id: 'l8', name: { tr: 'Devre Arası', en: 'Short Circuit' }, regular: 6, needy: 1, time: 390, strikes: 3, pool: L8, needyPool: [...N1, 'radio', 'verify'], events: true },
-  { id: 'l9', name: { tr: 'Kalabalık Panel', en: 'Crowded Panel' }, regular: 7, needy: 2, time: 420, strikes: 3, pool: ALL, needyPool: NALL, events: true },
-  { id: 'l10', name: { tr: 'Çift Taraflı', en: 'Double Sided' }, regular: 8, needy: 2, time: 450, strikes: 3, pool: ALL, needyPool: NALL, events: true },
-  { id: 'l11', name: { tr: 'Kırmızı Alarm', en: 'Red Alert' }, regular: 9, needy: 2, time: 480, strikes: 2, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l9', name: { tr: 'Kalabalık Panel', en: 'Crowded Panel' }, regular: 7, needy: 2, time: 420, strikes: 3, pool: L9, needyPool: NALL, events: true },
+  { id: 'l10', name: { tr: 'Çift Taraflı', en: 'Double Sided' }, regular: 8, needy: 2, time: 450, strikes: 3, pool: L10, needyPool: NALL, events: true },
+  { id: 'l11', name: { tr: 'Kırmızı Alarm', en: 'Red Alert' }, regular: 9, needy: 2, time: 495, strikes: 2, pool: L11, needyPool: NALL, events: true },
   { id: 'l12', name: { tr: 'Son Durak', en: 'Last Stop' }, regular: 9, needy: 2, time: 450, strikes: 2, pool: ALL, needyPool: NALL, events: true },
 ];
 
