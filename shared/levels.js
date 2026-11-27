@@ -1,7 +1,7 @@
 // Hazır seviyeler ve serbest mod sınırları.
 // Seviyeler modülleri kademeli tanıtır: her seviyenin "yeni" modülleri önceki seviyelerde görülmemiş olanlardır.
 
-import { REGULAR_TYPES, NEEDY_TYPES, TIERS, NEEDY_TIERS } from './modules/index.js';
+import { REGULAR_TYPES, STANDARD_TYPES, NEEDY_TYPES, TIERS, NEEDY_TIERS } from './modules/index.js';
 
 const T1 = TIERS[1];
 const ALL = REGULAR_TYPES;
@@ -32,7 +32,7 @@ export const LEVELS = [
   { id: 'l9', name: { tr: 'Kalabalık Panel', en: 'Crowded Panel' }, regular: 7, needy: 2, time: 420, strikes: 3, pool: L9, needyPool: NALL, events: true },
   { id: 'l10', name: { tr: 'Çift Taraflı', en: 'Double Sided' }, regular: 8, needy: 2, time: 450, strikes: 3, pool: L10, needyPool: NALL, events: true },
   { id: 'l11', name: { tr: 'Kırmızı Alarm', en: 'Red Alert' }, regular: 9, needy: 2, time: 495, strikes: 2, pool: L11, needyPool: NALL, events: true },
-  { id: 'l12', name: { tr: 'Son Durak', en: 'Last Stop' }, regular: 9, needy: 2, time: 450, strikes: 2, pool: ALL, needyPool: NALL, events: true },
+  { id: 'l12', name: { tr: 'Son Durak', en: 'Last Stop' }, regular: 9, needy: 2, time: 495, strikes: 2, pool: ALL, needyPool: NALL, events: true },
 ];
 
 // Her seviyenin ilk kez tanıttığı modüller
@@ -54,8 +54,8 @@ export const FREE_LIMITS = {
 // Serbest mod için hazır zorluk ayarları (lobi düğmeleri doldurur; oda sahibi sonra değiştirebilir)
 export const FREE_PRESETS = {
   easy: { time: 420, regular: 4, needy: 0, strikes: 4, events: false, pool: [...TIERS[1], ...TIERS[2]], needyPool: NEEDY_TIERS[1] },
-  normal: { time: 360, regular: 6, needy: 1, strikes: 3, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
-  hard: { time: 390, regular: 8, needy: 2, strikes: 2, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+  normal: { time: 360, regular: 6, needy: 1, strikes: 3, events: true, pool: STANDARD_TYPES, needyPool: NEEDY_TYPES },
+  hard: { time: 390, regular: 8, needy: 2, strikes: 2, events: true, pool: STANDARD_TYPES, needyPool: NEEDY_TYPES },
   expert: { time: 420, regular: 10, needy: 1, strikes: 1, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
 };
 export const PRESET_IDS = Object.keys(FREE_PRESETS);
@@ -64,8 +64,8 @@ export const PRESET_IDS = Object.keys(FREE_PRESETS);
 // geldiği için süreler cömerttir. Her zorluğun kendi rekor listesi vardır (solo-<zorluk>).
 export const SOLO_PRESETS = {
   easy: { time: 480, regular: 4, needy: 0, strikes: 4, events: false, pool: [...TIERS[1], ...TIERS[2]], needyPool: [] },
-  normal: { time: 540, regular: 5, needy: 1, strikes: 3, events: false, pool: REGULAR_TYPES, needyPool: NEEDY_TIERS[1] },
-  hard: { time: 600, regular: 7, needy: 1, strikes: 3, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
+  normal: { time: 540, regular: 5, needy: 1, strikes: 3, events: false, pool: STANDARD_TYPES, needyPool: NEEDY_TIERS[1] },
+  hard: { time: 600, regular: 7, needy: 1, strikes: 3, events: true, pool: STANDARD_TYPES, needyPool: NEEDY_TYPES },
   expert: { time: 600, regular: 9, needy: 2, strikes: 2, events: true, pool: REGULAR_TYPES, needyPool: NEEDY_TYPES },
 };
 export const SOLO_IDS = Object.keys(SOLO_PRESETS);
@@ -77,7 +77,7 @@ export const DEFAULT_FREE = {
   needy: 1,
   strikes: 3,
   events: true,
-  pool: REGULAR_TYPES.slice(),
+  pool: STANDARD_TYPES.slice(), // uzman kademesi serbest modda elle seçilir
   needyPool: NEEDY_TYPES.slice(),
 };
 

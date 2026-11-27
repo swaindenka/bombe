@@ -19,6 +19,8 @@ import lights from './lights.js';
 import numpath from './numpath.js';
 import codebreaker from './codebreaker.js';
 import nonogram from './nonogram.js';
+import circuit from './circuit.js';
+import twinmaze from './twinmaze.js';
 import coolant from './coolant.js';
 import passphrase from './passphrase.js';
 import radio from './radio.js';
@@ -47,6 +49,8 @@ export const MODULES = {
   numpath,
   codebreaker,
   nonogram,
+  circuit,
+  twinmaze,
   coolant,
   passphrase,
   radio,
@@ -59,13 +63,17 @@ export const TIERS = {
   1: ['wires', 'switches', 'tiles', 'glyphs', 'arrows'],
   2: ['maze', 'scale', 'patch', 'elevator', 'stroop', 'safe', 'gauges'],
   3: ['rhythm', 'cipher', 'logic', 'gears', 'lights', 'numpath', 'codebreaker', 'nonogram', 'homophones'],
+  // Uzman kademesi: çok zor modüller; yalnızca son seviyelerde ve kampanyanın son bölümlerinde çıkar
+  4: ['circuit', 'twinmaze'],
 };
 export const NEEDY_TIERS = {
   1: ['coolant', 'passphrase'],
   2: ['radio', 'verify', 'pressure'],
 };
 
-export const REGULAR_TYPES = [...TIERS[1], ...TIERS[2], ...TIERS[3]];
+export const REGULAR_TYPES = [...TIERS[1], ...TIERS[2], ...TIERS[3], ...TIERS[4]];
+/** Uzman kademesi hariç modüller (hazır ayarların çoğu bunları kullanır) */
+export const STANDARD_TYPES = [...TIERS[1], ...TIERS[2], ...TIERS[3]];
 export const NEEDY_TYPES = [...NEEDY_TIERS[1], ...NEEDY_TIERS[2]];
 export const ALL_TYPES = [...REGULAR_TYPES, ...NEEDY_TYPES];
 

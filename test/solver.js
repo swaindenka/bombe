@@ -12,6 +12,8 @@ import { nextStop } from '../shared/modules/elevator.js';
 import { gearAnswer } from '../shared/modules/gears.js';
 import { panelSolution } from '../shared/modules/lights.js';
 import { walkPath, PATH_SIZE } from '../shared/modules/numpath.js';
+import { circuitCurrent } from '../shared/modules/circuit.js';
+import { twinPath } from '../shared/modules/twinmaze.js';
 
 export function nextAction(type, s, e) {
   switch (type) {
@@ -79,6 +81,10 @@ export function nextAction(type, s, e) {
       const i = s.cells.findIndex((v, k) => v !== s.target[k]);
       return i >= 0 ? { toggle: i } : { submit: true };
     }
+    case 'circuit':
+      return { press: s.options.indexOf(circuitCurrent(s, e)) };
+    case 'twinmaze':
+      return { move: twinPath(s, e)[0] };
     case 'verify':
       return { press: s.options.indexOf(s.answer) };
     case 'radio':

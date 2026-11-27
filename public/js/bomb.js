@@ -36,6 +36,7 @@ const KEY_DIR = { ArrowUp: 'N', ArrowRight: 'E', ArrowDown: 'S', ArrowLeft: 'W' 
 const KEY_ACTIONS = {
   maze: (d) => ({ move: d }),
   arrows: (d) => ({ press: d }),
+  twinmaze: (d) => ({ move: d }),
 };
 
 export class DefuserView {

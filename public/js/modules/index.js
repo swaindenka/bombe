@@ -23,6 +23,8 @@ import lights from './lights.js';
 import numpath from './numpath.js';
 import codebreaker from './codebreaker.js';
 import nonogram from './nonogram.js';
+import circuit from './circuit.js';
+import twinmaze from './twinmaze.js';
 import verify from './verify.js';
 
 export const RENDERERS = {
@@ -47,6 +49,8 @@ export const RENDERERS = {
   numpath,
   codebreaker,
   nonogram,
+  circuit,
+  twinmaze,
   coolant,
   passphrase,
   radio,

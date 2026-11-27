@@ -1140,3 +1140,44 @@ table.rules.np-ex { width: auto; flex: none; margin: 0; }
 .np-ex td.end { background: #c9efd2; font-weight: 800; }
 .mini5.line { grid-template-columns: repeat(5, 15px); }
 .mini5.line i { width: 15px; height: 15px; }
+
+/* Direnç devresi */
+.ci-svg { position: absolute; top: 14px; left: 4px; width: 192px; height: 104px; }
+.ci-wire { fill: none; stroke: #15171a; stroke-width: 2.2; stroke-linejoin: round; }
+.ci-cell { stroke: #15171a; stroke-width: 2.4; }
+.ci-plus { font: 700 10px var(--mono); fill: #f1efe8; text-anchor: middle; }
+.ci-volt { font: 700 11px var(--mono); fill: #ffd447; text-anchor: middle; }
+.ci-body { fill: #d9c39a; stroke: #3a2f1d; stroke-width: 1.2; }
+.ci-band { stroke: rgba(0, 0, 0, .45); stroke-width: .6; }
+.ci-label { font: 700 8.5px var(--display); fill: #f1efe8; text-anchor: middle; letter-spacing: .05em; }
+.ci-cb { fill: #fff; font-size: 6.5px; }
+.ci-grid { position: absolute; left: 14px; right: 14px; top: 124px; bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ci-opt { font: 700 17px var(--mono); display: flex; align-items: baseline; justify-content: center; gap: 3px; }
+.ci-opt small { font-size: 10px; }
+
+/* İkiz labirent */
+.tw-id { position: absolute; top: 14px; width: 40px; height: 18px; font-size: 13px; letter-spacing: .08em; }
+.tw-id.l { left: 32px; }
+.tw-id.r { left: 128px; }
+.tw-grid { position: absolute; top: 36px; width: 70px; height: 70px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); background: #121417; border: 2px solid #0a0b0d; border-radius: 4px; box-sizing: border-box; }
+.tw-grid.l { left: 17px; }
+.tw-grid.r { left: 113px; }
+.tw-grid .mz-me { inset: 3px; }
+.tw-grid .mz-goal { border-left-width: 6px; border-right-width: 6px; border-bottom-width: 10px; }
+.tw-moves { position: absolute; top: 114px; left: 56px; right: 56px; height: 24px; font-size: 15px; gap: 6px; }
+.tw-moves small { font-size: 9px; opacity: .8; }
+.tw-moves.warn { color: #ff6b5b; text-shadow: 0 0 6px rgba(255, 90, 70, .6); }
+.tw-arrows { position: absolute; left: 16px; right: 16px; top: 146px; bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tw-arrow { font-size: 15px; }
+/* Kılavuz: ikiz labirent haritaları ve renk kodu */
+.tw-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; margin: 10px 0 14px; }
+.tw-fig { margin: 0; background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 6px; text-align: center; }
+.tw-fig b { font: 700 18px var(--display); display: block; }
+.tw-svg .mz-walls { stroke-width: 3; }
+.band-chip { display: inline-block; width: 26px; height: 14px; border-radius: 3px; border: 1px solid #222; vertical-align: -2px; margin-right: 6px; }
+.res-ex { display: inline-flex; gap: 2px; padding: 3px 6px; background: #d9c39a; border-radius: 8px; border: 1px solid #3a2f1d; vertical-align: middle; }
+.res-ex i { width: 6px; height: 14px; display: block; }
+
+.ci-figs { display: flex; flex-wrap: wrap; gap: 10px; }
+.ci-fig { margin: 0; background: #4a5058; border-radius: 8px; padding: 6px; text-align: center; color: #f1efe8; font: 700 12px var(--display); }
+.ci-fig .ci-svg { position: static; width: 192px; height: 104px; display: block; }

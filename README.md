@@ -13,7 +13,7 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 ## Özellikler
 
 - **Gerçek zamanlı çok oyunculu:** Node.js + Socket.IO sunucusu. Çözümler sunucuda tutulur; imhacının tarayıcısına yalnızca gördüğü şey gönderilir.
-- **26 modül:** 21 normal ve 5 sürekli ilgi isteyen modül (aşağıdaki tablo). Bilerek kafa yorduran bulmacalar: Dişli Kutusu, Işık Paneli, Sayı Yolu, Kod Kırıcı ve Resim Bulmacası.
+- **28 modül:** 23 normal ve 5 sürekli ilgi isteyen modül (aşağıdaki tablo). Bilerek kafa yorduran bulmacalar: Dişli Kutusu, Işık Paneli, Sayı Yolu, Kod Kırıcı ve Resim Bulmacası. En zorları **uzman kademesinde (4)**: Direnç Devresi ve İkiz Labirent yalnızca 12. seviyede, kampanyanın 10–12. bölümlerinde ve "Uzman" hazır ayarlarında çıkar.
 - **Çeşitlilik:** Bir bombada, havuzdaki her modül bir kez çıkmadan hiçbiri ikinci kez çıkmaz (eskiden "glifler, pusula, glifler, pusula" gibi tekrarlar olabiliyordu).
 - **Kampanya modu:** Seviyelerden bağımsız, kendi bölüm sistemi olan 12 bölümlük bir operasyon. Başlatınca doğrudan 1. bölümden ilerlenir.
   - Her kampanya rastgele üretilir: kod adı (ör. "Operasyon Paslı Fener"), her bölümün mekânı, modül sayısı ve havuzu, öne çıkan modülü, süresi, hata hakkı ve **koşulları** her seferinde farklıdır. Koşullar: Karanlık oda, Sarsıntılı bölge, Hatlarda parazit, Hızlı sayaç, Kırılgan, Kalabalık, Ek süre ve yeni gelenler: **Ödül süresi** (süre kısa başlar, çözülen her modül +20 sn), **Hassas devre** (her hata sayacı %50 hızlandırır), **Dalgalı akım** (modül ekranları sık karıncalanır), **Dağınık kılavuz** (uzmanların kılavuzu karışık sırada, içindekiler ve arama yok).
@@ -66,6 +66,8 @@ Her şey tarayıcıda çalışır. Kurulum yok, hesap yok: biri oda kurar, diğe
 | 3 | Sayı Yolu | 4×4 rakam tablosunda rakamın gösterdiği yöne adım adım yürüme (kenardan sarma, port kuralı), 2 aşama |
 | 3 | Kod Kırıcı | 5 renkten 4'lü gizli kodu 6 denemede bulma; ▲/● işaretlerinin anlamı çerçeve rengine göre değişir |
 | 3 | Resim Bulmacası | 5×5 sayılı resim bulmacasını (nonogram) mantıkla çözüp lambaya göre aynalayarak, ters çevirerek ya da baş aşağı girme |
+| 4 | Direnç Devresi | Renk bantlarından direnç değerleri, seri/paralel düzen, Ohm yasasıyla ana akım (mA); yanan gösterge gerilimi iki katına çıkarır |
+| 4 | İkiz Labirent | Görünmez duvarlı iki labirentte iki nokta aynı oklarla birlikte hareket eder (yanan gösterge varsa sağdaki ayna); duvarda bekleyen nokta, hamle sınırı |
 | 3 | Işık Paneli | Sembolün hedef desenine (yanan gösterge varsa tersine) ulaşma; her basış komşuları da değiştirir, kılavuz "ışık kovalama" yöntemini verir |
 | 3 | Sesteş | Birbirine çok benzeyen kelimeleri doğru tarif etme, 3 aşama |
 | ⏱ | Soğutucu | Kodun rakamlarına göre A/B/C |

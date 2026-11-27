@@ -61,7 +61,9 @@ export const placeName = (index, lang = 'tr') => (PLACES[lang] || PLACES.tr)[ind
 
 const round15 = (s) => Math.round(s / 15) * 15;
 
-const unlockedAt = (s) => [...TIERS[1], ...(s >= 3 ? TIERS[2] : []), ...(s >= 6 ? TIERS[3] : [])];
+// Uzman kademesi (çok zor modüller) yalnızca son üç bölümde açılır
+export const EXPERT_STAGE = 10;
+const unlockedAt = (s) => [...TIERS[1], ...(s >= 3 ? TIERS[2] : []), ...(s >= 6 ? TIERS[3] : []), ...(s >= EXPERT_STAGE ? TIERS[4] : [])];
 
 /**
  * Bölümün öne çıkan modülü. Kampanya boyunca aynı modül tekrar öne çıkmaz (hepsi bitene kadar);
@@ -72,7 +74,7 @@ function featuredFor(seed, stage) {
   const used = new Set();
   let pick = null;
   for (let s = 1; s <= stage; s++) {
-    const fresh = s === 3 ? TIERS[2] : s === 6 ? TIERS[3] : unlockedAt(s);
+    const fresh = s === 3 ? TIERS[2] : s === 6 ? TIERS[3] : s === EXPERT_STAGE ? TIERS[4] : unlockedAt(s);
     let options = order.filter((t) => fresh.includes(t) && !used.has(t));
     if (!options.length) options = order.filter((t) => unlockedAt(s).includes(t) && !used.has(t));
     if (!options.length) {
