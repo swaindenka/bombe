@@ -11,6 +11,7 @@ import { scalePicks } from '../shared/modules/scale.js';
 import { nextStop } from '../shared/modules/elevator.js';
 import { gearAnswer } from '../shared/modules/gears.js';
 import { panelSolution } from '../shared/modules/lights.js';
+import { walkPath, PATH_SIZE } from '../shared/modules/numpath.js';
 
 export function nextAction(type, s, e) {
   switch (type) {
@@ -65,6 +66,18 @@ export function nextAction(type, s, e) {
     case 'lights': {
       const sol = panelSolution(s.cells, s.target);
       return sol.length ? { press: sol[0] } : { submit: true };
+    }
+    case 'numpath': {
+      const { end } = walkPath(s.grid, s.start, s.steps, e);
+      return { press: end.y * PATH_SIZE + end.x };
+    }
+    case 'codebreaker': {
+      const i = s.guess.findIndex((g, k) => g !== s.code[k]);
+      return i >= 0 ? { cycle: i } : { try: true };
+    }
+    case 'nonogram': {
+      const i = s.cells.findIndex((v, k) => v !== s.target[k]);
+      return i >= 0 ? { toggle: i } : { submit: true };
     }
     case 'verify':
       return { press: s.options.indexOf(s.answer) };

@@ -16,6 +16,9 @@ import elevator from './elevator.js';
 import logic from './logic.js';
 import gears from './gears.js';
 import lights from './lights.js';
+import numpath from './numpath.js';
+import codebreaker from './codebreaker.js';
+import nonogram from './nonogram.js';
 import coolant from './coolant.js';
 import passphrase from './passphrase.js';
 import radio from './radio.js';
@@ -41,6 +44,9 @@ export const MODULES = {
   logic,
   gears,
   lights,
+  numpath,
+  codebreaker,
+  nonogram,
   coolant,
   passphrase,
   radio,
@@ -52,7 +58,7 @@ export const MODULES = {
 export const TIERS = {
   1: ['wires', 'switches', 'tiles', 'glyphs', 'arrows'],
   2: ['maze', 'scale', 'patch', 'elevator', 'stroop', 'safe', 'gauges'],
-  3: ['rhythm', 'cipher', 'logic', 'gears', 'lights', 'homophones'],
+  3: ['rhythm', 'cipher', 'logic', 'gears', 'lights', 'numpath', 'codebreaker', 'nonogram', 'homophones'],
 };
 export const NEEDY_TIERS = {
   1: ['coolant', 'passphrase'],

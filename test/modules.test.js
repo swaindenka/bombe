@@ -625,3 +625,103 @@ test('ışık paneli: hedef, ters çevirme, komşu kuralı ve kılavuzdaki koval
   }
   assert.deepEqual(press([0, 0, 0, 0, 0, 0, 0, 0, 0], 8), [0, 0, 0, 0, 0, 1, 0, 1, 1]);
 });
+
+test('kod kırıcı: geri bildirim, çerçeveye göre işaretler, 6 hakta mantıkla çözülebilirlik, hak bitince yeni kod', async () => {
+  const { codeFeedback, feedbackSymbols, CODE_COLORS, CODE_TRIES } = await import('../shared/modules/codebreaker.js');
+  assert.deepEqual(codeFeedback(['red', 'blue', 'green', 'yellow'], ['red', 'green', 'white', 'blue']), { exact: 1, near: 2 });
+  assert.deepEqual(feedbackSymbols({ exact: 2, near: 1 }, 'blue'), { tri: 2, dot: 1 });
+  assert.deepEqual(feedbackSymbols({ exact: 2, near: 1 }, 'amber'), { tri: 1, dot: 2 });
+  // Kılavuz ipucu: toplam 3 ise denenmeyen renk kesin koddadır
+  const codes = [];
+  for (const a of CODE_COLORS) for (const b of CODE_COLORS) for (const c of CODE_COLORS) for (const d of CODE_COLORS) if (new Set([a, b, c, d]).size === 4) codes.push([a, b, c, d]);
+  for (const code of codes) {
+    const fb = codeFeedback(['red', 'blue', 'green', 'yellow'], code);
+    if (fb.exact + fb.near === 3) assert.ok(code.includes('white'));
+  }
+  // Önceki işaretlerle uyumlu tahmin yapan basit bir oyuncu her kodu 6 hakta bulur
+  for (const code of codes) {
+    let cand = codes.slice();
+    let g = ['red', 'blue', 'green', 'yellow'];
+    let n = 0;
+    for (;;) {
+      n++;
+      const fb = codeFeedback(g, code);
+      if (fb.exact === 4) break;
+      cand = cand.filter((c) => { const f = codeFeedback(g, c); return f.exact === fb.exact && f.near === fb.near; });
+      g = cand[0];
+    }
+    assert.ok(n <= CODE_TRIES, `${code} ${n} denemede`);
+  }
+  for (const seed of SEEDS.slice(0, 100)) {
+    const rng = createRng(seed);
+    const s = MODULES.codebreaker.generate(rng);
+    assert.equal(new Set(s.code).size, 4);
+    assert.ok(!JSON.stringify(MODULES.codebreaker.view(s)).includes('"code'));
+    // Eksik tahmin gönderilmez
+    assert.deepEqual(MODULES.codebreaker.action(s, { try: true }, { rng }), {});
+    const wrong = CODE_COLORS.filter((c) => !s.code.includes(c))[0];
+    for (let t = 0; t < CODE_TRIES; t++) {
+      s.guess = [wrong, wrong, wrong, wrong];
+      const r = MODULES.codebreaker.action(s, { try: true }, { rng });
+      assert.equal(!!r.strike, t === CODE_TRIES - 1, 'yalnızca son hak bitince hata');
+    }
+    assert.equal(s.history.length, 0, 'hak bitince geçmiş silinir');
+    assert.ok(s.guess.every((g) => g === null));
+  }
+});
+
+test('resim bulmacası: ipuçları, tahminsiz tek çözüm, lamba dönüşümleri', async () => {
+  const { lineClue, nonoClues, solveNonogram, nonoTransform, NONO } = await import('../shared/modules/nonogram.js');
+  assert.deepEqual(lineClue([1, 1, 0, 1, 0]), [2, 1]);
+  assert.deepEqual(lineClue([0, 0, 0, 0, 0]), []);
+  const ex = [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0];
+  // Aynalama: ilk satır 11110 → 01111; baş aşağı: ilk satır son satırla yer değiştirir; turuncu: ters
+  assert.deepEqual(nonoTransform(ex, 'blue').slice(0, 5), [0, 1, 1, 1, 1]);
+  assert.deepEqual(nonoTransform(ex, 'white').slice(0, 5), ex.slice(20, 25));
+  assert.deepEqual(nonoTransform(ex, 'amber'), ex.map((v) => 1 - v));
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const s = MODULES.nonogram.generate(rng);
+    const picture = solveNonogram(s.clues);
+    assert.ok(picture, 'satır satır mantıkla çözülmeli');
+    assert.deepEqual(nonoClues(picture), s.clues);
+    // Mantıkla bulunan resim, lambaya göre dönüştürülünce hedefe eşit
+    assert.deepEqual(nonoTransform(picture, s.lamp), s.target);
+    // Ters/aynalama hedefi resimle aynı bırakmaz (dönüşüm gerçekten gerekli)
+    assert.notDeepEqual(s.target, picture);
+    assert.equal(s.cells.length, NONO * NONO);
+    assert.ok(!JSON.stringify(MODULES.nonogram.view(s)).includes('target'));
+    assert.deepEqual(MODULES.nonogram.action(s, { submit: true }), { strike: true });
+  }
+});
+
+test('sayı yolu: kılavuzdaki yön tablosu, port kuralı, kenardan sarma, iki aşama', async () => {
+  const { digitDir, walkPath, PATH_SIZE } = await import('../shared/modules/numpath.js');
+  const few = { serial: 'BC12D7', batteryHolders: [], indicators: [], portPlates: [['USB']] };
+  const many = { ...few, portPlates: [['USB', 'HDMI'], ['AUX']] };
+  assert.deepEqual([0, 2, 3, 5, 6, 7, 8, 9].map((d) => digitDir(d, few)), ['R', 'R', 'D', 'D', 'L', 'L', 'U', 'U']);
+  assert.deepEqual([3, 8, 0, 6].map((d) => digitDir(d, many)), ['U', 'D', 'R', 'L']);
+  // Sarma: sağ kenardan sağa giden soldan girer
+  const g = Array(16).fill(0);
+  assert.deepEqual(walkPath(g, { x: 3, y: 2 }, 1, few).end, { x: 0, y: 2 });
+  // Kılavuz örneği
+  const EX = [6, 0, 9, 0, 1, 9, 5, 3, 7, 9, 3, 8, 3, 7, 6, 9];
+  const ex = walkPath(EX, { x: 1, y: 1 }, 5, few);
+  assert.deepEqual(ex.trail.map((t) => t.d), ['U', 'R', 'U', 'L', 'L'], 'kılavuz örneğinin yolu');
+  assert.deepEqual(ex.end, { x: 0, y: 3 });
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const e = generateEdgework(rng);
+    const s = MODULES.numpath.generate(rng, e);
+    const { end } = walkPath(s.grid, s.start, s.steps, e);
+    assert.ok(end.x !== s.start.x || end.y !== s.start.y);
+    const wrong = end.y * PATH_SIZE + ((end.x + 1) % PATH_SIZE);
+    const before = JSON.stringify(s);
+    assert.deepEqual(MODULES.numpath.action(s, { press: wrong }, { rng, edgework: e }), { strike: true });
+    assert.equal(JSON.stringify(s), before, 'yanlışta tablo değişmez');
+    assert.deepEqual(MODULES.numpath.action(s, { press: end.y * PATH_SIZE + end.x }, { rng, edgework: e }), { changed: true });
+    assert.equal(s.stage, 2);
+    assert.deepEqual(s.start, end, '2. aşama basılan hücreden başlar');
+    assert.ok(!JSON.stringify(MODULES.numpath.view(s)).includes('"end'));
+  }
+});
